@@ -1,25 +1,47 @@
-# tap-frontapp
+# tap-typeform
 
 This is a [Singer](https://singer.io) tap that produces JSON-formatted data following the [Singer spec](https://github.com/singer-io/getting-started/blob/master/SPEC.md).
 
 This tap:
 
-- Pulls raw data from FrontApp's [API](https://dev.frontapp.com/)
+- Pulls raw data from TypeForms's [API](https://api.typeform.com/forms)
 - Extracts the following resources from FrontApp
-  - [Analytics](https://dev.emarsys.com/v2/email-campaigns/list-email-campaigns)
-      - Hourly/Daily analytics of metrics
-          - team_table
+  - [Responses](https://developer.typeform.com/responses)
+      - List of questions on each form added to the configuration in the tap.
+      - List of landings of users onto each form added to the configuration in the tap.
+      - List of answers completed during each landing onto each form added to the configuration in the tap.
 - Outputs the schema for each resource
+
+## Setup
+
+Building follows the conventional Singer setup:
+
+python3 ./setup.py clean
+python3 ./setup.py build
+python3 ./setup.py install
 
 ## Configuration
 
-This tap requires a `config.json` which specifies details regarding [API authentication](https://dev.frontapp.com/#authentication), a cutoff date for syncing historical data, and a time period range [daily,hourly] to control what incremental extract date ranges are. See [config.sample.json](config.sample.json) for an example.
+This tap requires a `config.json` which specifies details regarding an [Authentication token](https://developer.typeform.com/get-started/convert-keys-to-access-tokens/), a list of form ids, cutoff date for syncing historical data, and a time period range [daily,hourly] to control what incremental extract date ranges are. See [config.sample.json](config.sample.json) for an example.
 
-To run `tap-frontapp` with the configuration file, use this command:
+Create the catalog:
 
 ```bash
-› tap-frontapp -c my-config.json
+› tap-typeform --config config.json --discover > catalog.json
 ```
+
+Then to run the extract:
+
+```bash
+› tap-typeform --config config.json --catalog catalog.json --state state.json
+```
+
+Note that a typical state file looks like this:
+
+```json
+{"bookmarks": {"team_table": {"date_to_resume": "2018-08-01 00:00:00"}}}
+```
+
 
 ---
 

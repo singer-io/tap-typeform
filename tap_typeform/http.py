@@ -11,9 +11,9 @@ class MetricsRateLimitException(Exception):
     pass
 
 class Client(object):
+    BASE_URL = 'https://api.typeform.com/forms/FORM_ID/responses'
 
     def __init__(self, config):
-        self.BASE_URL = config.get('base_url')
         self.token = 'Bearer ' + config.get('token')
         self.metric = config.get('metric')
         self.session = requests.Session()

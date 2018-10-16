@@ -1,5 +1,4 @@
 {
-  "base_url": "https://api.typeform.com/forms/FORM_ID/responses",
   "token": "<myapitoken>",
   "start_date": "2018-01-01T00:00:00Z",
   "surveys": ["ZFuC6U", "bFPlvG", "WFBGBZ", "WF0XE6", "xFWoCE", "OFHRwO", "QFh3FI"],
