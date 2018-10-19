@@ -1,7 +1,7 @@
 {
   "token": "<myapitoken>",
   "start_date": "2018-01-01T00:00:00Z",
-  "surveys": ["ZFuC6U", "bFPlvG", "WFBGBZ", "WF0XE6", "xFWoCE", "OFHRwO", "QFh3FI"],
+  "forms": "ZFuC6U,bFPlvG,WFBGBZ,WF0XE6,xFWoCE,OFHRwO,QFh3FI",
   "incremental_range": "daily"
 }
 

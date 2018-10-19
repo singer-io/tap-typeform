@@ -16,13 +16,13 @@ TypeForm uses Oath2 for the Responses, but this tap was developed using a non-ex
 
 3. Click the **TypeForm** icon.
 
-4. Enter a name for the integration. This is the name that will display on the Stitch Dashboard for the integration; it’ll also be used to create the schema in your destination. For example, the name "Stitch TypeForm" would create a schema called `stitch_frontapp` in the destination. **Note**: Schema names cannot be changed after you save the integration.
+4. Enter a name for the integration. This is the name that will display on the Stitch Dashboard for the integration; it’ll also be used to create the schema in your destination. For example, the name "Stitch TypeForm" would create a schema called `stitch_typeform` in the destination. **Note**: Schema names cannot be changed after you save the integration.
 
 5. In the **Token** field, enter your TypeForm web token.
 
 6. In the **Forms** field, enter a comma delimited list of form ids.  
 
-7. In the **Incremental Range** field, enter the desired aggregation frame (daily or hourly).
+7. In the **Incremental Range** field, enter the desired incremental frame (daily or hourly).
 
 8. In the **Start Date** field, enter the minimum, beginning start date for data from the form (e.g. 2017-01-1).
 

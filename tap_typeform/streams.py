@@ -185,7 +185,7 @@ def write_forms_state(atx, form, date_to_resume):
 def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
 
-    for form_id in atx.config.get('forms'):
+    for form_id in atx.config.get('forms').split(','):
         bookmark = atx.state.get('bookmarks', {}).get(form_id, {})
 
         LOGGER.info('form: {} '.format(form_id))

@@ -11,7 +11,7 @@ from . import streams
 from .context import Context
 from . import schemas
 
-REQUIRED_CONFIG_KEYS = ["token", "forms"]
+REQUIRED_CONFIG_KEYS = ["token", "forms", "incremental_range"]
 
 LOGGER = singer.get_logger()
 
@@ -31,13 +31,6 @@ def discover():
         #print("tap stream id=",tap_stream_id)
         schema = Schema.from_dict(schemas.load_schema(tap_stream_id))
         metadata = []
-        if schema.selected is True:
-            metadata.append({
-                'metadata': {
-                    'selected': True
-                },
-                'breadcrumb': []
-            })
         for field_name in schema.properties.keys():
             #print("field name=",field_name)
             if field_name in schemas.PK_FIELDS[tap_stream_id]:
