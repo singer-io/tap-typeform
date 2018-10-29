@@ -12,7 +12,7 @@
 	    "selected": true
 	},
       	"title": {
-            "title": ["null", "string"],
+            "type": ["null", "string"],
 	    "selected": true
 	},
       	"ref": {
