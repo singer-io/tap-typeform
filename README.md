@@ -5,7 +5,7 @@ This is a [Singer](https://singer.io) tap that produces JSON-formatted data foll
 This tap:
 
 - Pulls raw data from TypeForms's [API](https://api.typeform.com/forms)
-- Extracts the following resources from FrontApp
+- Extracts the following resources from TypeForm
   - [Responses](https://developer.typeform.com/responses)
       - List of questions on each form added to the configuration in the tap.
       - List of landings of users onto each form added to the configuration in the tap.

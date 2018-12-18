@@ -19,12 +19,11 @@ LOGGER = singer.get_logger()
 #    atx.client.get('/settings')
 
 
-# with tap-emarsys, they do it this way where the catalog is read in from a call to the api
-#  but with the typeform structure, we won't do that here
-#  because it's always the same so we just pull it from file
-# we never use atx in here since the schema is from file
-#  but we would use it if we pulled schema from the API
-# def discover(atx):
+# Some taps do discovery dynamically where the catalog is read in from a
+#  call to the api but with the typeform structure, we won't do that here
+#  because it's always the same so we just pull it from file we never use
+#  atx in here since the schema is from file but we would use it if we
+#  pulled schema from the API def discover(atx):
 def discover():
     catalog = Catalog([])
     for tap_stream_id in schemas.STATIC_SCHEMA_STREAM_IDS:
