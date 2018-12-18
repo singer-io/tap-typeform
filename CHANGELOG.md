@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.3
+  * Fix `landings` stream formatting
+
 ## 1.0.2
   * Add type (string) to `landing_id` in `landings` stream
 
