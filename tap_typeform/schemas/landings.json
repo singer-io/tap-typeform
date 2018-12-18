@@ -3,28 +3,29 @@
     "selected": true,
     "additionalProperties": false,
     "properties": {
-	"landing_id": {
+        "landing_id": {
+            "type": ["null", "string"],
 	    "selected": true
 	},
 	"token": {
 	    "type": ["null", "string"],
 	    "selected": true
 	},
-      	"landed_at": {
+        "landed_at": {
             "type": ["null", "string"],
 	    "format": "date-time",
 	    "selected": true
 	},
-      	"submitted_at": {
+        "submitted_at": {
             "type": ["null", "string"],
 	    "format": "date-time",
 	    "selected": true
 	},
-      	"user_agent": {
+        "user_agent": {
             "type": ["null", "string"],
 	    "selected": true
 	},
-      	"platform": {
+        "platform": {
             "type": ["null", "string"],
 	    "selected": true
 	},
@@ -32,7 +33,7 @@
 	    "type": ["null", "string"],
 	    "selected": true
 	},
-	"network_id": {
+	"network_id":
 	    "type": ["null", "string"],
 	    "selected": true
 	},
