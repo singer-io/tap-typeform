@@ -42,6 +42,23 @@ Note that a typical state file looks like this:
 {"bookmarks": {"team_table": {"date_to_resume": "2018-08-01 00:00:00"}}}
 ```
 
+## Replication
+
+With each run of the integration, the following data set is extracted and replicated to the data warehouse:
+
+- **Questions**: A list of question titles and ids that can then be used to link to answers.
+
+- **Landings**: A list of form landings and supporting data since the last completed run of the tap through the most recent day or hour respectively. On the first run, ALL increments since the **Start Date** will be replicated.
+
+- **Answers**: A list of form answers with ids that can be used to link to landings and questions since the last completed run of the integration) through the most recent day or hour respectively. On the first run, ALL increments since the **Start Date** will be replicated.
+
+## Troubleshooting / Other Important Info
+
+- **Question Data**: The form definitions are quite robust, but we have chosen to limit the fields to just those needed for responses analysis.
+
+- **Form Data**: The raw response data is not fully normalized and the tap output reflects this by breaking it into landings and answers.  Answers could potentially be normalized further, but the redundant data is quite small so it seemed better to keep it flat.  The hidden field was left a JSON structure since it could have any sorts or numbers of custom elements.  
+
+- **Timestamps**: All timestamp columns are in yyyy-MM-ddTHH:mm:ssZ format.  Resume_date state parameter are Unix timestamps.
 
 ---
 
