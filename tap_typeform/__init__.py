@@ -75,6 +75,11 @@ def sync(atx):
     # since there is only one set of schemas for all forms, they will always be selected
     streams.sync_forms(atx)
 
+    LOGGER.info('--------------------')
+    for stream_name, stream_count in atx.counts.items():
+        LOGGER.info('%s: %d', stream_name, stream_count)
+    LOGGER.info('--------------------')
+
 
 @utils.handle_top_exception(LOGGER)
 def main():
