@@ -14,13 +14,22 @@ LOGGER = singer.get_logger()
 
 MAX_METRIC_JOB_TIME = 1800
 METRIC_JOB_POLL_SLEEP = 1
+FORM_STREAMS = ['landings', 'answers'] #streams that get sync'd in sync_forms
 
 def count(tap_stream_id, records):
     with singer.metrics.record_counter(tap_stream_id) as counter:
         counter.increment(len(records))
 
-def write_records(tap_stream_id, records):
-    singer.write_records(tap_stream_id, records)
+def write_records(atx, tap_stream_id, records):
+    extraction_time = singer.utils.now()
+    catalog_entry = atx.get_catalog_entry(tap_stream_id)
+    stream_metadata = singer.metadata.to_map(catalog_entry.metadata)
+    stream_schema = catalog_entry.schema.to_dict()
+    with singer.Transformer() as transformer:
+        for rec in records:
+            rec = transformer.transform(rec, stream_schema, stream_metadata)
+            singer.write_record(tap_stream_id, rec, time_extracted=extraction_time)
+        atx.counts[tap_stream_id] += len(records)
     count(tap_stream_id, records)
 
 def get_date_and_integer_fields(stream):
@@ -105,7 +114,7 @@ def sync_form_definition(atx, form_id):
             "ref": row['ref']
             })
 
-    write_records('questions', definition_data_rows)
+    write_records(atx, 'questions', definition_data_rows)
 
 
 def sync_form(atx, form_id, start_date, end_date):
@@ -194,11 +203,19 @@ def sync_forms(atx):
         LOGGER.info('form: {} '.format(form_id))
 
         # pull back the form question details
-        sync_form_definition(atx, form_id)
+        if 'questions'in atx.selected_stream_ids:
+            sync_form_definition(atx, form_id)
+
+        should_sync_forms = False
+        for stream_name in FORM_STREAMS:
+            should_sync_forms = should_sync_forms or (stream_name in atx.selected_stream_ids)
+        if not should_sync_forms:
+            continue
 
         # start_date is defaulted in the config file 2018-01-01
         # if there's no default date and it gets set to now, then start_date will have to be
         #   set to the prior business day/hour before we can use it.
+
         now = datetime.datetime.now()
         if incremental_range == "daily":
             s_d = now.replace(hour=0, minute=0, second=0, microsecond=0)
