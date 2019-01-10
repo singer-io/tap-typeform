@@ -14,13 +14,22 @@ LOGGER = singer.get_logger()
 
 MAX_METRIC_JOB_TIME = 1800
 METRIC_JOB_POLL_SLEEP = 1
+FORM_STREAMS = ['landings', 'answers'] #streams that get sync'd in sync_forms
 
 def count(tap_stream_id, records):
     with singer.metrics.record_counter(tap_stream_id) as counter:
         counter.increment(len(records))
 
-def write_records(tap_stream_id, records):
-    singer.write_records(tap_stream_id, records)
+def write_records(atx, tap_stream_id, records):
+    extraction_time = singer.utils.now()
+    catalog_entry = atx.get_catalog_entry(tap_stream_id)
+    stream_metadata = singer.metadata.to_map(catalog_entry.metadata)
+    stream_schema = catalog_entry.schema.to_dict()
+    with singer.Transformer() as transformer:
+        for rec in records:
+            rec = transformer.transform(rec, stream_schema, stream_metadata)
+            singer.write_record(tap_stream_id, rec, time_extracted=extraction_time)
+        atx.counts[tap_stream_id] += len(records)
     count(tap_stream_id, records)
 
 def get_date_and_integer_fields(stream):
@@ -71,11 +80,11 @@ def get_form_definition(atx, form_id):
 def get_form(atx, form_id, start_date, end_date):
     LOGGER.info('Forms query - form: {} start_date: {} end_date: {} '.format(
         form_id,
-        start_date,
-        end_date))
+        pendulum.from_timestamp(start_date).strftime("%Y-%m-%d %H:%M"),
+        pendulum.from_timestamp(end_date).strftime("%Y-%m-%d %H:%M")))
     # the api limits responses to a max of 1000 per call
     # the api doesn't have a means of paging through responses if the number is greater than 1000,
-    # so since the order of data retrieved is by submitted_at we have 
+    # so since the order of data retrieved is by submitted_at we have
     # to take the last submitted_at date and use it to cycle through
     return atx.client.get(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
 
@@ -105,7 +114,7 @@ def sync_form_definition(atx, form_id):
             "ref": row['ref']
             })
 
-    write_records('questions', definition_data_rows)
+    write_records(atx, 'questions', definition_data_rows)
 
 
 def sync_form(atx, form_id, start_date, end_date):
@@ -137,22 +146,23 @@ def sync_form(atx, form_id, start_date, end_date):
 
         # the schema here reflects what we saw through testing
         # the typeform documentation is subtly inaccurate
-        landings_data_rows.append({
-            "landing_id": row['landing_id'],
-            "token": row['token'],
-            "landed_at": row['landed_at'],
-            "submitted_at": row['submitted_at'],
-            "user_agent": row['metadata']['user_agent'],
-            "platform": row['metadata']['platform'],
-            "referer": row['metadata']['referer'],
-            "network_id": row['metadata']['network_id'],
-            "browser": row['metadata']['browser'],
-            "hidden": hidden
+        if 'landings' in atx.selected_stream_ids:
+            landings_data_rows.append({
+                "landing_id": row['landing_id'],
+                "token": row['token'],
+                "landed_at": row['landed_at'],
+                "submitted_at": row['submitted_at'],
+                "user_agent": row['metadata']['user_agent'],
+                "platform": row['metadata']['platform'],
+                "referer": row['metadata']['referer'],
+                "network_id": row['metadata']['network_id'],
+                "browser": row['metadata']['browser'],
+                "hidden": hidden
             })
 
         max_submitted_dt = row['submitted_at']
 
-        if 'answers' in row:
+        if ('answers' in row) and 'answers' in atx.selected_stream_ids:
             for answer in row['answers']:
                 data_type = answer['type']
 
@@ -172,8 +182,10 @@ def sync_form(atx, form_id, start_date, end_date):
                     "answer": answer_value
                 })
 
-    write_records('landings', landings_data_rows)
-    write_records('answers', answers_data_rows)
+    if 'landings' in atx.selected_stream_ids:
+        write_records(atx, 'landings', landings_data_rows)
+    if 'answers' in atx.selected_stream_ids:
+        write_records(atx, 'answers', answers_data_rows)
 
     return [response['total_items'], max_submitted_dt]
 
@@ -191,11 +203,19 @@ def sync_forms(atx):
         LOGGER.info('form: {} '.format(form_id))
 
         # pull back the form question details
-        sync_form_definition(atx, form_id)
+        if 'questions'in atx.selected_stream_ids:
+            sync_form_definition(atx, form_id)
+
+        should_sync_forms = False
+        for stream_name in FORM_STREAMS:
+            should_sync_forms = should_sync_forms or (stream_name in atx.selected_stream_ids)
+        if not should_sync_forms:
+            continue
 
         # start_date is defaulted in the config file 2018-01-01
         # if there's no default date and it gets set to now, then start_date will have to be
         #   set to the prior business day/hour before we can use it.
+
         now = datetime.datetime.now()
         if incremental_range == "daily":
             s_d = now.replace(hour=0, minute=0, second=0, microsecond=0)

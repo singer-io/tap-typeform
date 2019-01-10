@@ -22,6 +22,8 @@ class Context(object):
         self._catalog = None
         self.selected_stream_ids = None
         self.now = datetime.utcnow()
+        self.stream_map = None
+        self.counts = {}
 
     @property
     def catalog(self):
@@ -32,6 +34,7 @@ class Context(object):
         self._catalog = catalog
         self.selected_stream_ids = set()
         for stream in catalog.streams:
+            self.counts[stream.tap_stream_id] = 0
             mdata = metadata.to_map(stream.metadata)
             root_metadata = mdata.get(())
             if root_metadata and root_metadata.get('selected') is True:
@@ -57,3 +60,8 @@ class Context(object):
 
     def write_state(self):
         singer.write_state(self.state)
+
+    def get_catalog_entry(self, stream_name):
+        if not self.stream_map:
+            self.stream_map = {s.tap_stream_id: s for s in self._catalog.streams}
+        return self.stream_map[stream_name]

@@ -66,12 +66,19 @@ def load_schema(tap_stream_id):
 
 
 def sync(atx):
-    schemas.load_and_write_schema('questions')
-    schemas.load_and_write_schema('landings')
-    schemas.load_and_write_schema('answers')
+
+    # write schemas for selected streams\
+    for stream in atx.catalog.streams:
+        if stream.tap_stream_id in atx.selected_stream_ids:
+            schemas.load_and_write_schema(stream.tap_stream_id)
 
     # since there is only one set of schemas for all forms, they will always be selected
     streams.sync_forms(atx)
+
+    LOGGER.info('--------------------')
+    for stream_name, stream_count in atx.counts.items():
+        LOGGER.info('%s: %d', stream_name, stream_count)
+    LOGGER.info('--------------------')
 
 
 @utils.handle_top_exception(LOGGER)
