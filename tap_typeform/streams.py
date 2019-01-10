@@ -75,7 +75,7 @@ def get_form(atx, form_id, start_date, end_date):
         end_date))
     # the api limits responses to a max of 1000 per call
     # the api doesn't have a means of paging through responses if the number is greater than 1000,
-    # so since the order of data retrieved is by submitted_at we have 
+    # so since the order of data retrieved is by submitted_at we have
     # to take the last submitted_at date and use it to cycle through
     return atx.client.get(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
 
@@ -137,22 +137,23 @@ def sync_form(atx, form_id, start_date, end_date):
 
         # the schema here reflects what we saw through testing
         # the typeform documentation is subtly inaccurate
-        landings_data_rows.append({
-            "landing_id": row['landing_id'],
-            "token": row['token'],
-            "landed_at": row['landed_at'],
-            "submitted_at": row['submitted_at'],
-            "user_agent": row['metadata']['user_agent'],
-            "platform": row['metadata']['platform'],
-            "referer": row['metadata']['referer'],
-            "network_id": row['metadata']['network_id'],
-            "browser": row['metadata']['browser'],
-            "hidden": hidden
+        if 'landings' in atx.selected_stream_ids:
+            landings_data_rows.append({
+                "landing_id": row['landing_id'],
+                "token": row['token'],
+                "landed_at": row['landed_at'],
+                "submitted_at": row['submitted_at'],
+                "user_agent": row['metadata']['user_agent'],
+                "platform": row['metadata']['platform'],
+                "referer": row['metadata']['referer'],
+                "network_id": row['metadata']['network_id'],
+                "browser": row['metadata']['browser'],
+                "hidden": hidden
             })
 
         max_submitted_dt = row['submitted_at']
 
-        if 'answers' in row:
+        if ('answers' in row) and 'answers' in atx.selected_stream_ids:
             for answer in row['answers']:
                 data_type = answer['type']
 
@@ -172,8 +173,10 @@ def sync_form(atx, form_id, start_date, end_date):
                     "answer": answer_value
                 })
 
-    write_records('landings', landings_data_rows)
-    write_records('answers', answers_data_rows)
+    if 'landings' in atx.selected_stream_ids:
+        write_records(atx, 'landings', landings_data_rows)
+    if 'answers' in atx.selected_stream_ids:
+        write_records(atx, 'answers', answers_data_rows)
 
     return [response['total_items'], max_submitted_dt]
 
