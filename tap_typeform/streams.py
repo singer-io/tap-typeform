@@ -80,8 +80,8 @@ def get_form_definition(atx, form_id):
 def get_form(atx, form_id, start_date, end_date):
     LOGGER.info('Forms query - form: {} start_date: {} end_date: {} '.format(
         form_id,
-        start_date,
-        end_date))
+        pendulum.from_timestamp(start_date).strftime("%Y-%M-%d %H:%m"),
+        pendulum.from_timestamp(end_date).strftime("%Y-%M-%d %H:%m")))
     # the api limits responses to a max of 1000 per call
     # the api doesn't have a means of paging through responses if the number is greater than 1000,
     # so since the order of data retrieved is by submitted_at we have
