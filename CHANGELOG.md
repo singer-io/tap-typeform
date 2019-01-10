@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.0
+  * Add table/field selection [#2](https://github.com/singer-io/tap-typeform/pull/2)
+
 ## 1.0.3
   * Fix `landings` stream formatting
 
