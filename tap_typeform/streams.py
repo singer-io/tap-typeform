@@ -174,7 +174,7 @@ def sync_form(atx, form_id, start_date, end_date):
                     answer_value = answer[data_type]
 
                 answers_data_rows.append({
-                    "landing_id": row.get('field',{}).get('landing_id'),
+                    "landing_id": row['landing_id'],
                     "question_id": answer.get('field',{}).get('id'),
                     "type": answer.get('field',{}).get('type'),
                     "ref": answer.get('field',{}).get('ref'),
