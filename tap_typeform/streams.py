@@ -171,7 +171,7 @@ def sync_form(atx, form_id, start_date, end_date):
                 elif data_type in ['number', 'boolean']:
                     answer_value = str(answer[data_type])
                 else:
-                    answer_value = answer[data_type]
+                    answer_value = answer.get(data_type)
 
                 answers_data_rows.append({
                     "landing_id": row.get('landing_id'),
