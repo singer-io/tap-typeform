@@ -164,14 +164,14 @@ def sync_form(atx, form_id, start_date, end_date):
 
         if ('answers' in row) and 'answers' in atx.selected_stream_ids:
             for answer in row['answers']:
-                data_type = answer['type']
+                data_type = answer.get('type')
 
                 if data_type in ['choice', 'choices', 'payment']:
-                    answer_value = json.dumps(answer[data_type])
+                    answer_value = json.dumps(answer.get(data_type))
                 elif data_type in ['number', 'boolean']:
-                    answer_value = str(answer[data_type])
+                    answer_value = str(answer.get(data_type))
                 else:
-                    answer_value = answer[data_type]
+                    answer_value = answer.get(data_type)
 
                 answers_data_rows.append({
                     "landing_id": row.get('landing_id'),
