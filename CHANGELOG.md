@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+  * Use `dict.get()` to access more fields rather than `[]` [#3](https://github.com/singer-io/tap-typeform/pull/5)
+
 ## 1.1.1
   * Use `dict.get()` to access fields rather than `[]` [#3](https://github.com/singer-io/tap-typeform/pull/3)
 
