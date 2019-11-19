@@ -1,0 +1,47 @@
+version: 2.1
+
+orbs:
+  release: dialogue/release@2.1.1
+  python: dialogue/python@2.0.1
+
+workflows:
+  ci:
+    jobs:
+      - python/pylama:
+          name: pylama
+          context: org-global-v2
+      - python/black:
+          name: black
+          context: org-global-v2
+      - python/isort:
+          name: isort
+          context: org-global-v2
+      - release/release:
+          name: release
+          requires:
+            - pylama
+            - black
+            - isort
+          context: org-global-v2
+      - python/publish_package:
+          name: publish-dev
+          include_dev: true
+          requires:
+            - pylama
+            - black
+            - isort
+          filters:
+            branches:
+              ignore: master
+          context: org-global-v2
+
+  publish:
+    jobs:
+      - python/publish_package:
+          name: publish
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          context: org-global-v2

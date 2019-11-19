@@ -95,6 +95,7 @@ ENV/
 # Custom stuff
 env.sh
 config.json
+out.json
 .autoenv.zsh
 
 rsa-key

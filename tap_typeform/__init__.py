@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 
+import json
 import os
 import sys
-import json
 
 import singer
 from singer import utils
 from singer.catalog import Catalog, CatalogEntry, Schema
-from . import streams
-from .context import Context
-from . import schemas
+
+import tap_typeform.schemas as schemas
+import tap_typeform.streams as streams
+from tap_typeform.context import Context
 
 REQUIRED_CONFIG_KEYS = ["token", "forms", "incremental_range"]
 
 LOGGER = singer.get_logger()
 
-#def check_authorization(atx):
+# def check_authorization(atx):
 #    atx.client.get('/settings')
 
 
@@ -27,28 +28,30 @@ LOGGER = singer.get_logger()
 def discover():
     catalog = Catalog([])
     for tap_stream_id in schemas.STATIC_SCHEMA_STREAM_IDS:
-        #print("tap stream id=",tap_stream_id)
+        # print("tap stream id=",tap_stream_id)
         schema = Schema.from_dict(schemas.load_schema(tap_stream_id))
         metadata = []
         for field_name in schema.properties.keys():
-            #print("field name=",field_name)
+            # print("field name=",field_name)
             if field_name in schemas.PK_FIELDS[tap_stream_id]:
-                inclusion = 'automatic'
+                inclusion = "automatic"
             else:
-                inclusion = 'available'
-            metadata.append({
-                'metadata': {
-                    'inclusion': inclusion
-                },
-                'breadcrumb': ['properties', field_name]
-            })
-        catalog.streams.append(CatalogEntry(
-            stream=tap_stream_id,
-            tap_stream_id=tap_stream_id,
-            key_properties=schemas.PK_FIELDS[tap_stream_id],
-            schema=schema,
-            metadata=metadata
-        ))
+                inclusion = "available"
+            metadata.append(
+                {
+                    "metadata": {"inclusion": inclusion},
+                    "breadcrumb": ["properties", field_name],
+                }
+            )
+        catalog.streams.append(
+            CatalogEntry(
+                stream=tap_stream_id,
+                tap_stream_id=tap_stream_id,
+                key_properties=schemas.PK_FIELDS[tap_stream_id],
+                schema=schema,
+                metadata=metadata,
+            )
+        )
     return catalog
 
 
@@ -69,16 +72,16 @@ def sync(atx):
 
     # write schemas for selected streams\
     for stream in atx.catalog.streams:
-        if stream.tap_stream_id in atx.selected_stream_ids:
-            schemas.load_and_write_schema(stream.tap_stream_id)
+        # if stream.tap_stream_id in atx.selected_stream_ids:
+        schemas.load_and_write_schema(stream.tap_stream_id)
 
     # since there is only one set of schemas for all forms, they will always be selected
     streams.sync_forms(atx)
 
-    LOGGER.info('--------------------')
+    LOGGER.info("--------------------")
     for stream_name, stream_count in atx.counts.items():
-        LOGGER.info('%s: %d', stream_name, stream_count)
-    LOGGER.info('--------------------')
+        LOGGER.info("%s: %d", stream_name, stream_count)
+    LOGGER.info("--------------------")
 
 
 @utils.handle_top_exception(LOGGER)
@@ -90,9 +93,11 @@ def main():
         catalog = discover()
         json.dump(catalog.to_dict(), sys.stdout)
     else:
-        atx.catalog = Catalog.from_dict(args.properties) \
-            if args.properties else discover()
+        atx.catalog = (
+            Catalog.from_dict(args.properties) if args.properties else discover()
+        )
         sync(atx)
+
 
 if __name__ == "__main__":
     main()

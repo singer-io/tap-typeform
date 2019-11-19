@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "tap-typeform"
+version = "0.0.0"
+description = "typeform tap"
+authors = ["Dialogue <hackers@dialogue.co>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+funcy = "^1.13"
+requests = "^2.2"
+backoff = "^1.3"
+ratelimit = "^2.2"
+pendulum = "^2.0"
+singer-python = "^5.4"
+
+[tool.poetry.dev-dependencies]
+pylama = "^7.7"
+isort = "^4.3"
+black = "19.3b0"
+
+[[tool.poetry.source]]
+name = "dialogue"
+url = "https://pypi.fury.io/dialogue"
+
+[tool.black]
+exclude = '.vscode|.eggs|.venv'
+
+[tool.poetry.scripts]
+tap-typeform = "tap_typeform:main"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

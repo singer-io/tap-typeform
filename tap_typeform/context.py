@@ -1,9 +1,11 @@
-from datetime import datetime, date
+from datetime import date, datetime
 
 import singer
-from singer import bookmarks as bks_, metadata
+from singer import bookmarks as bks_
+from singer import metadata
 
-from .http import Client
+from tap_typeform.client import Client
+
 
 class Context(object):
     """Represents a collection of global objects necessary for performing
@@ -15,6 +17,7 @@ class Context(object):
     - catalog - A singer.catalog.Catalog. Note this will be None during
                 discovery.
     """
+
     def __init__(self, config, state):
         self.config = config
         self.state = state
@@ -37,7 +40,7 @@ class Context(object):
             self.counts[stream.tap_stream_id] = 0
             mdata = metadata.to_map(stream.metadata)
             root_metadata = mdata.get(())
-            if root_metadata and root_metadata.get('selected') is True:
+            if root_metadata and root_metadata.get("selected") is True:
                 self.selected_stream_ids.add(stream.tap_stream_id)
 
     def get_bookmark(self, path):
