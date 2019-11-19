@@ -10,7 +10,7 @@ funcy = "^1.13"
 requests = "^2.2"
 backoff = "^1.3"
 ratelimit = "^2.2"
-pendulum = "^2.0"
+pendulum = "^1.4"
 singer-python = "^5.4"
 
 [tool.poetry.dev-dependencies]
