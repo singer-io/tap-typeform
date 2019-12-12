@@ -230,10 +230,10 @@ def sync_forms(atx):
         # if end date is now, we will have to truncate them
         # to the nearest day/hour before we can use it.
         if incremental_range == "daily":
-            e_d = now.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S") + datetime.timedelta(days=1, hours=0)
+            e_d = (now.replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1, hours=0)).strftime("%Y-%m-%d %H:%M:%S")
             end_date = pendulum.parse(atx.config.get('end_date', e_d))
         elif incremental_range == "hourly":
-            e_d = now.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S") + datetime.timedelta(days=0, hours=1)
+            e_d = (now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(days=0, hours=1)).strftime("%Y-%m-%d %H:%M:%S")
             end_date = pendulum.parse(atx.config.get('end_date', e_d))
         LOGGER.info('end_date: {} '.format(end_date))
 
