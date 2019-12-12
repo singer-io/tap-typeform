@@ -194,15 +194,6 @@ def write_forms_state(atx, form, date_to_resume):
     write_bookmark(atx.state, form, 'date_to_resume', date_to_resume.to_datetime_string())
     atx.write_state()
 
-
-def increment_date(current_date, incremental_range):
-    if incremental_range == "daily":
-        next_date = current_date + datetime.timedelta(days=1, hours=0)
-    elif incremental_range == "hourly":
-        next_date = current_date + datetime.timedelta(days=0, hours=1)
-    return next_date
-
-
 def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
 
@@ -256,9 +247,13 @@ def sync_forms(atx):
         # no real reason to assign this other than the naming
         # makes better sense once we go into the loop
         current_date = last_date
-        next_date = increment_date(current_date, incremental_range)
 
-        while next_date <= end_date:
+        while current_date <= end_date:
+            if incremental_range == "daily":
+                next_date = current_date + datetime.timedelta(days=1, hours=0)
+            elif incremental_range == "hourly":
+                next_date = current_date + datetime.timedelta(days=0, hours=1)
+
             ut_current_date = int(current_date.timestamp())
             LOGGER.info('ut_current_date: {} '.format(ut_current_date))
             ut_next_date = int(next_date.timestamp())
@@ -278,7 +273,6 @@ def sync_forms(atx):
             # if the prior sync is successful it will write the date_to_resume bookmark
             write_forms_state(atx, form_id, next_date)
             current_date = next_date
-            next_date = increment_date(current_date, incremental_range)
 
         reset_stream(atx.state, 'questions')
         reset_stream(atx.state, 'landings')
