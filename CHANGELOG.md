@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.4
+  * Revert `v1.1.3`, effectively making `v1.1.4` the same as `v1.1.2`
+
 ## 1.1.3
   * Fix bookmarking to use the max `submitted_at` value instead of the end
     of our query's date window [#16](https://github.com/singer-io/tap-typeform/pull/16)
