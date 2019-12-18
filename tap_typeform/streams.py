@@ -230,10 +230,10 @@ def sync_forms(atx):
         # if end date is now, we will have to truncate them
         # to the nearest day/hour before we can use it.
         if incremental_range == "daily":
-            e_d = now.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+            e_d = (now.replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1, hours=0)).strftime("%Y-%m-%d %H:%M:%S")
             end_date = pendulum.parse(atx.config.get('end_date', e_d))
         elif incremental_range == "hourly":
-            e_d = now.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+            e_d = (now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(days=0, hours=1)).strftime("%Y-%m-%d %H:%M:%S")
             end_date = pendulum.parse(atx.config.get('end_date', e_d))
         LOGGER.info('end_date: {} '.format(end_date))
 
@@ -242,7 +242,6 @@ def sync_forms(atx):
         s_d = start_date.strftime("%Y-%m-%d %H:%M:%S")
         last_date = pendulum.parse(bookmark.get('date_to_resume', s_d))
         LOGGER.info('last_date: {} '.format(last_date))
-
 
         # no real reason to assign this other than the naming
         # makes better sense once we go into the loop
@@ -271,7 +270,7 @@ def sync_forms(atx):
                 [responses, max_submitted_at] = sync_form(atx, form_id, ut_interim_next_date, ut_next_date)
 
             # if the prior sync is successful it will write the date_to_resume bookmark
-            write_forms_state(atx, form_id, next_date)
+            write_forms_state(atx, form_id, pendulum.parse(max_submitted_at))
             current_date = next_date
 
         reset_stream(atx.state, 'questions')
