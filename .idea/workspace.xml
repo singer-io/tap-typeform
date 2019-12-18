@@ -15,8 +15,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tap_typeform/streams.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="502">
-              <caret line="272" column="111" selection-start-line="272" selection-start-column="102" selection-end-line="272" selection-end-column="111" />
+            <state relative-caret-position="507">
+              <caret line="273" column="12" selection-start-line="273" selection-start-column="12" selection-end-line="273" selection-end-column="12" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -115,12 +115,12 @@
       <updated>1576692374076</updated>
       <workItem from="1576692377264" duration="1080000" />
       <workItem from="1576696625615" duration="78000" />
-      <workItem from="1576698846246" duration="119000" />
+      <workItem from="1576698846246" duration="300000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="1277000" />
+    <option name="totallyTimeSpent" value="1458000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="210" y="151" width="1260" height="771" extended-state="0" />
@@ -164,8 +164,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tap_typeform/streams.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="502">
-          <caret line="272" column="111" selection-start-line="272" selection-start-column="102" selection-end-line="272" selection-end-column="111" />
+        <state relative-caret-position="507">
+          <caret line="273" column="12" selection-start-line="273" selection-start-column="12" selection-end-line="273" selection-end-column="12" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
