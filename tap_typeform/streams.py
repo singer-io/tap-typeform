@@ -270,7 +270,7 @@ def sync_forms(atx):
                 [responses, max_submitted_at] = sync_form(atx, form_id, ut_interim_next_date, ut_next_date)
 
             # if the prior sync is successful it will write the date_to_resume bookmark
-            write_forms_state(atx, form_id, pendulum.parse(max_submitted_at) if max_submitted_at else current_date)
+            write_forms_state(atx, form_id, pendulum.parse(max_submitted_at) if max_submitted_at else last_date)
             current_date = next_date
 
         reset_stream(atx.state, 'questions')
