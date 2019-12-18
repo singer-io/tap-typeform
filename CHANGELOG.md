@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+  * Fix bookmarking to use the max `submitted_at` value instead of the end
+    of our query's date window [#16](https://github.com/singer-io/tap-typeform/pull/16)
+
 ## 1.1.2
   * Use `dict.get()` to access more fields rather than `[]` [#3](https://github.com/singer-io/tap-typeform/pull/5)
 
