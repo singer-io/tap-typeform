@@ -96,7 +96,7 @@ def sync_form_definition(atx, form_id):
                 raise Exception('Metric job timeout ({} secs)'.format(
                     MAX_METRIC_JOB_TIME))
             response = get_form_definition(atx, form_id)
-            data = response['fields']
+            data = response.get('fields',[])
             if data != '':
                 break
             else:
