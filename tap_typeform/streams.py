@@ -162,7 +162,7 @@ def sync_form(atx, form_id, start_date, end_date):
 
         max_submitted_dt = row['submitted_at']
 
-        if ('answers' in row) and 'answers' in atx.selected_stream_ids:
+        if row.get('answers') and 'answers' in atx.selected_stream_ids:
             for answer in row['answers']:
                 data_type = answer.get('type')
 
