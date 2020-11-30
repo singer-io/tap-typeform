@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+  * Add logic to handle empty forms
+
 ## 1.1.4
   * Revert `v1.1.3`, effectively making `v1.1.4` the same as `v1.1.2`
 
