@@ -8,17 +8,20 @@ class IDS(object):
     LANDINGS = 'landings'
     ANSWERS = 'answers'
     QUESTIONS = 'questions'
+    FORMS = 'forms'
 
 STATIC_SCHEMA_STREAM_IDS = [
     IDS.LANDINGS,
     IDS.ANSWERS,
-    IDS.QUESTIONS
+    IDS.QUESTIONS,
+    IDS.FORMS,
 ]
 
 PK_FIELDS = {
     IDS.LANDINGS: ['landing_id'],
     IDS.ANSWERS: ['landing_id', 'question_id'],
     IDS.QUESTIONS: ['form_id', 'question_id'],
+    IDS.FORMS: ['id']
 }
 
 def normalize_fieldname(fieldname):
