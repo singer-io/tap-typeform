@@ -11,21 +11,21 @@ class MetricsRateLimitException(Exception):
     pass
 
 class Client(object):
-    BASE_URL = 'https://api.typeform.com/forms/FORM_ID/responses'
+    BASE_URL = 'https://api.typeform.com'
 
     def __init__(self, config):
         self.token = 'Bearer ' + config.get('token')
         self.metric = config.get('metric')
         self.session = requests.Session()
 
-    def url(self, form_id):
-        return self.BASE_URL.replace("FORM_ID", form_id)
+    def build_url(self, endpoint):
+        return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,
                           RateLimitException,
                           max_tries=10,
                           factor=2)
-    def request(self, method, form_id, **kwargs):
+    def request(self, method, url, **kwargs):
         # note that typeform response api doesn't return limit headers
 
         if 'headers' not in kwargs:
@@ -33,12 +33,7 @@ class Client(object):
         if self.token:
             kwargs['headers']['Authorization'] = self.token
 
-        # if we're just pulling the form definition, strip the rest of the url
-        if 'params' not in kwargs:
-            response = requests.request(method, self.url(form_id).replace('/responses', ''), **kwargs)
-        else:
-            response = requests.request(method, self.url(form_id), **kwargs)
-        #print('final3 url=',response.url)
+        response = requests.request(method, url, **kwargs)
 
         if response.status_code in [429, 503]:
             raise RateLimitException()
@@ -53,5 +48,16 @@ class Client(object):
             LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
         return response.json()
 
-    def get(self, form_id, **kwargs):
-        return self.request('get', form_id, **kwargs)
+    def get_forms(self, **kwargs):
+        url = self.build_url(endpoint='forms')
+        return self.request('get', url, **kwargs)
+
+    def get_form_definition(self, form_id, **kwargs):
+        endpoint = f"forms/{form_id}"
+        url = self.build_url(endpoint=endpoint)
+        return self.request('get', url, **kwargs)
+
+    def get_form_responses(self, form_id, **kwargs):
+        endpoint = f"forms/{form_id}/responses"
+        url = self.build_url(endpoint)
+        return self.request('get', url, **kwargs)

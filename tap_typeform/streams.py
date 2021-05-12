@@ -71,7 +71,7 @@ def select_fields(mdata, obj):
 @sleep_and_retry
 @limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_form_definition(atx, form_id):
-    return atx.client.get(form_id)
+    return atx.client.get_form_definition(form_id)
 
 @on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
 @on_exception(expo, RateLimitException, max_tries=5)
@@ -86,7 +86,7 @@ def get_form(atx, form_id, start_date, end_date):
     # the api doesn't have a means of paging through responses if the number is greater than 1000,
     # so since the order of data retrieved is by submitted_at we have
     # to take the last submitted_at date and use it to cycle through
-    return atx.client.get(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
+    return atx.client.get_form_responses(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
 
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
