@@ -88,6 +88,18 @@ def get_form(atx, form_id, start_date, end_date):
     # to take the last submitted_at date and use it to cycle through
     return atx.client.get_form_responses(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
 
+@on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
+@on_exception(expo, RateLimitException, max_tries=5)
+@sleep_and_retry
+@limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
+def get_forms(atx):
+    LOGGER.info('All forms query')
+    # the api limits responses to a max of 1000 per call
+    # the api doesn't have a means of paging through responses if the number is greater than 1000,
+    # so since the order of data retrieved is by submitted_at we have
+    # to take the last submitted_at date and use it to cycle through
+    return atx.client.get_forms(params={'page_size': 200})
+
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
         start = time.monotonic()
@@ -194,6 +206,24 @@ def write_forms_state(atx, form, date_to_resume):
     write_bookmark(atx.state, form, 'date_to_resume', date_to_resume.to_datetime_string())
     atx.write_state()
 
+
+def sync_all_forms(atx):
+    with singer.metrics.job_timer('all forms'):
+        start = time.monotonic()
+        while True:
+            if (time.monotonic() - start) >= MAX_METRIC_JOB_TIME:
+                raise Exception('Metric job timeout ({} secs)'.format(
+                    MAX_METRIC_JOB_TIME))
+            response = get_forms(atx)
+            forms = response.get('items',[])
+            if forms != '':
+                break
+            else:
+                time.sleep(METRIC_JOB_POLL_SLEEP)
+
+    write_records(atx, 'forms', forms)
+
+
 def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
 
@@ -277,3 +307,8 @@ def sync_forms(atx):
         reset_stream(atx.state, 'questions')
         reset_stream(atx.state, 'landings')
         reset_stream(atx.state, 'answers')
+
+    if 'forms'in atx.selected_stream_ids:
+        sync_all_forms(atx)
+
+    reset_stream(atx.state, 'forms')
