@@ -207,7 +207,9 @@ def write_forms_state(atx, form, date_to_resume):
     atx.write_state()
 
 
-def sync_all_forms(atx):
+def sync_latest_forms(atx):
+    replication_key = 'last_updated_at'
+    tap_id = 'forms'
     with singer.metrics.job_timer('all forms'):
         start = time.monotonic()
         while True:
@@ -221,7 +223,26 @@ def sync_all_forms(atx):
             else:
                 time.sleep(METRIC_JOB_POLL_SLEEP)
 
-    write_records(atx, 'forms', forms)
+    # Using an older version of singer
+    bookmark_date = singer.get_bookmark(atx.state, tap_id, replication_key) or atx.config['start_date']
+    bookmark_datetime = singer.utils.strptime_to_utc(bookmark_date)
+    max_datetime = bookmark_datetime
+
+    records = []
+    for form in forms:
+        record_datetime = singer.utils.strptime_to_utc(form[replication_key])
+        if record_datetime >= bookmark_datetime:
+            records.append(form)
+            max_datetime = max(record_datetime, max_datetime)
+
+    write_records(atx, tap_id, records)
+    bookmark_date = singer.utils.strftime(max_datetime)
+    state = singer.write_bookmark(atx.state,
+                                  tap_id,
+                                  replication_key,
+                                  bookmark_date)
+
+    return state
 
 
 def sync_forms(atx):
@@ -309,6 +330,8 @@ def sync_forms(atx):
         reset_stream(atx.state, 'answers')
 
     if 'forms'in atx.selected_stream_ids:
-        sync_all_forms(atx)
+        state = sync_latest_forms(atx)
+
+    singer.write_state(state)
 
     reset_stream(atx.state, 'forms')
