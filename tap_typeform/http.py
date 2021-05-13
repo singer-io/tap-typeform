@@ -48,9 +48,27 @@ class Client(object):
             LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
         return response.json()
 
-    def get_forms(self, **kwargs):
+    # Max page size for forms API is 200
+    def get_forms(self, page_size=200):
         url = self.build_url(endpoint='forms')
-        return self.request('get', url, **kwargs)
+        return self._get_forms('get', url, page_size)
+
+    def _get_forms(self, method, url, page_size):
+        page = 1
+        paginate = True
+        records = []
+        params = {'page_size': page_size}
+
+        while paginate:
+            params['page'] = page
+            response = self.request(method, url, params=params)
+            page_count = response.get('page_count')
+            paginate = page_count > page
+            page += 1
+
+            records += response.get('items')
+
+        return records
 
     def get_form_definition(self, form_id, **kwargs):
         endpoint = f"forms/{form_id}"

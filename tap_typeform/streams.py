@@ -94,11 +94,7 @@ def get_form(atx, form_id, start_date, end_date):
 @limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_forms(atx):
     LOGGER.info('All forms query')
-    # the api limits responses to a max of 1000 per call
-    # the api doesn't have a means of paging through responses if the number is greater than 1000,
-    # so since the order of data retrieved is by submitted_at we have
-    # to take the last submitted_at date and use it to cycle through
-    return atx.client.get_forms(params={'page_size': 200})
+    return atx.client.get_forms()
 
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
@@ -216,8 +212,7 @@ def sync_latest_forms(atx):
             if (time.monotonic() - start) >= MAX_METRIC_JOB_TIME:
                 raise Exception('Metric job timeout ({} secs)'.format(
                     MAX_METRIC_JOB_TIME))
-            response = get_forms(atx)
-            forms = response.get('items',[])
+            forms = get_forms(atx)
             if forms != '':
                 break
             else:
