@@ -9,7 +9,6 @@ from base import TypeformBaseTest
 
 
 class TypeformBookmarks(TypeformBaseTest):
-
     @staticmethod
     def name():
         return "tap_tester_typeform_bookmarks"
@@ -71,7 +70,6 @@ class TypeformBookmarks(TypeformBaseTest):
 
     def test_run(self):
         expected_streams =  self.expected_streams()
-
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
