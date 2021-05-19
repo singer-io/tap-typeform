@@ -80,7 +80,7 @@ class TypeformBookmarks(TypeformBaseTest):
 
         # Testing against ads insights objects
         self.start_date = self.get_properties()['start_date']
-        self.end_date = self.get_properties()['end_date']
+        self.end_date = self.get_properties()['start_date']
         self.bookmarks_test(insight_streams)
 
         # Testing against core objects
