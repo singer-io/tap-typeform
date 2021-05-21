@@ -89,7 +89,10 @@ class TyepformFieldSelection(TypeformBaseTest):  # TODO use base.py, determine i
 
         # This should be validating the the PKs are written in each record
         record_count_by_stream = runner.examine_target_output_file(self, conn_id, self.expected_sync_streams(), self.expected_pks())
-        replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values())
+        if len(record_count_by_stream.values()) == 0:
+            replicated_row_count = 0
+        else:
+            replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values())
         self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
         print("total replicated row count: {}".format(replicated_row_count))
 

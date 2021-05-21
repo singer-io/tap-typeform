@@ -60,7 +60,7 @@ class DiscoveryTest(TypeformBaseTest):
                 metadata = schema_and_metadata["metadata"]
                 stream_properties = [item for item in metadata if item.get("breadcrumb") == []]
                 if len(stream_properties) == 0:
-                    stream_properties[0] = {}
+                    stream_properties.append({})
                 actual_primary_keys = set(
                     stream_properties[0].get(
                         "metadata", {self.PRIMARY_KEYS: []}).get(self.PRIMARY_KEYS, [])
