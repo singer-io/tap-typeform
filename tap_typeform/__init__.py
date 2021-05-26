@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-
-import os
-import sys
-import json
-
 import singer
 from singer import utils
-from singer.catalog import Catalog, CatalogEntry, Schema
+from singer.catalog import Catalog, metadata_module as metadata
 from tap_typeform import streams
 from tap_typeform.context import Context
 from tap_typeform import schemas
