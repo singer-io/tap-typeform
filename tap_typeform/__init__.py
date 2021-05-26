@@ -25,31 +25,22 @@ LOGGER = singer.get_logger()
 #  atx in here since the schema is from file but we would use it if we
 #  pulled schema from the API def discover(atx):
 def discover():
-    catalog = Catalog([])
+    streams = []
     for tap_stream_id in schemas.STATIC_SCHEMA_STREAM_IDS:
         #print("tap stream id=",tap_stream_id)
-        schema = Schema.from_dict(schemas.load_schema(tap_stream_id))
-        metadata = []
-        for field_name in schema.properties.keys():
-            #print("field name=",field_name)
-            if field_name in schemas.PK_FIELDS[tap_stream_id]:
-                inclusion = 'automatic'
-            else:
-                inclusion = 'available'
-            metadata.append({
-                'metadata': {
-                    'inclusion': inclusion
-                },
-                'breadcrumb': ['properties', field_name]
-            })
-        catalog.streams.append(CatalogEntry(
-            stream=tap_stream_id,
-            tap_stream_id=tap_stream_id,
-            key_properties=schemas.PK_FIELDS[tap_stream_id],
-            schema=schema,
-            metadata=metadata
-        ))
-    return catalog
+        key_properties = schemas.PK_FIELDS[tap_stream_id]
+        schema = schemas.load_schema(tap_stream_id)
+        meta = metadata.get_standard_metadata(schema=schema,
+                                              key_properties=key_properties)
+
+        streams.append({
+            'stream': tap_stream_id,
+            'tap_stream_id': tap_stream_id,
+            'key_properties': key_properties,
+            'schema': schema,
+            'metadata': meta
+        })
+    return Catalog.from_dict({'streams': streams})
 
 
 # this is already defined in schemas.py though w/o dependencies.  do we keep this for the sync?
@@ -88,7 +79,7 @@ def main():
     if args.discover:
         # the schema is static from file so we don't need to pass in atx for connection info.
         catalog = discover()
-        json.dump(catalog.to_dict(), sys.stdout)
+        catalog.dump()
     else:
         atx.catalog = Catalog.from_dict(args.properties) \
             if args.properties else discover()
