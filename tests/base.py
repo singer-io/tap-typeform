@@ -74,6 +74,11 @@ class TypeformBaseTest(unittest.TestCase):
             "questions": {
                 self.PRIMARY_KEYS: {"form_id", "question_id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
+            },
+            "forms": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: ["last_updated_at"]
             }
         }
 
@@ -103,7 +108,8 @@ class TypeformBaseTest(unittest.TestCase):
         return a dictionary with key of table name
         and value as a set of replication key fields
         """
-        return {table: properties.get(self.REPLICATION_KEYS, set())
+        return {table: set() if not properties.get(self.REPLICATION_KEYS)
+                       else set(properties.get(self.REPLICATION_KEYS))
                 for table, properties
                 in self.expected_metadata().items()}
 
