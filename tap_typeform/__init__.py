@@ -25,15 +25,21 @@ def discover():
         #print("tap stream id=",tap_stream_id)
         key_properties = schemas.PK_FIELDS[tap_stream_id]
         schema = schemas.load_schema(tap_stream_id)
+        replication_method = schemas.REPLICATION_METHODS[tap_stream_id].get("replication_method")
+        replication_key = schemas.REPLICATION_METHODS[tap_stream_id].get("replication_key")
         meta = metadata.get_standard_metadata(schema=schema,
-                                              key_properties=key_properties)
+                                              key_properties=key_properties,
+                                              replication_method=replication_method,
+                                              valid_replication_keys=replication_key)
 
         streams.append({
             'stream': tap_stream_id,
             'tap_stream_id': tap_stream_id,
             'key_properties': key_properties,
             'schema': schema,
-            'metadata': meta
+            'metadata': meta,
+            'replication_method': replication_method,
+            'replication_key': replication_key
         })
     return Catalog.from_dict({'streams': streams})
 
