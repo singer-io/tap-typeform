@@ -113,7 +113,8 @@ class TypeformBaseTest(unittest.TestCase):
         return a dictionary with key of table name
         and value as a set of replication key fields
         """
-        return {table: properties.get(self.REPLICATION_KEYS, set())
+        return {table: set() if not properties.get(self.REPLICATION_KEYS)
+                       else set(properties.get(self.REPLICATION_KEYS))
                 for table, properties
                 in self.expected_metadata().items()}
 
