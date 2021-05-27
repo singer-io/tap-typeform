@@ -113,8 +113,7 @@ class TypeformBaseTest(unittest.TestCase):
         return a dictionary with key of table name
         and value as a set of replication key fields
         """
-        return {table: set() if not properties.get(self.REPLICATION_KEYS)
-                       else set(properties.get(self.REPLICATION_KEYS))
+        return {table: properties.get(self.REPLICATION_KEYS, set())
                 for table, properties
                 in self.expected_metadata().items()}
 
@@ -130,7 +129,7 @@ class TypeformBaseTest(unittest.TestCase):
     def expected_automatic_fields(self):
         auto_fields = {}
         for k, v in self.expected_metadata().items():
-            auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | set() if not v.get(self.REPLICATION_KEYS) else set() \
+            auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | v.get(self.REPLICATION_KEYS, set()) \
                 | v.get(self.FOREIGN_KEYS, set())
         return auto_fields
 
