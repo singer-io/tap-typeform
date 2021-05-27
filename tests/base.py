@@ -125,7 +125,7 @@ class TypeformBaseTest(unittest.TestCase):
     def expected_automatic_fields(self):
         auto_fields = {}
         for k, v in self.expected_metadata().items():
-            auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | v.get(self.REPLICATION_KEYS, set()) \
+            auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | set() if not v.get(self.REPLICATION_KEYS) else set() \
                 | v.get(self.FOREIGN_KEYS, set())
         return auto_fields
 
