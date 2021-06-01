@@ -90,8 +90,8 @@ def main():
         catalog = discover()
         catalog.dump()
     else:
-        atx.catalog = Catalog.from_dict(args.properties) \
-            if args.properties else discover()
+        atx.catalog = args.catalog \
+            if args.catalog else discover()
         sync(atx)
 
 if __name__ == "__main__":
