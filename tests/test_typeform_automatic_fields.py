@@ -15,19 +15,6 @@ class TypeformAutomaticFields(TypeformBaseTest):
     def name():
         return "tap_tester_typeform_automatic_fields"
 
-    def get_properties(self, original: bool = True):
-        """Configuration properties required for the tap."""
-        return_value = {
-            'start_date' : '2015-03-15T00:00:00Z',
-            'forms': os.getenv('TAP_TYPEFORM_FORMS'),
-            'incremental_range': 'daily',
-        }
-        if original:
-            return return_value
-
-        return_value["start_date"] = self.start_date
-        return return_value
-
     def test_run(self):
         """
         Verify that for each stream you can get multiple pages of data
