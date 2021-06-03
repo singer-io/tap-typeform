@@ -14,19 +14,6 @@ class TypeformStartDateTest(TypeformBaseTest):
     def name():
         return "tap_tester_typeform_start_date_test"
 
-    def get_properties(self, original: bool = True):
-        """Configuration properties required for the tap."""
-        return_value = {
-            'start_date' : '2015-03-15T00:00:00Z',
-            'forms': os.getenv('TAP_TYPEFORM_FORMS'),
-            'incremental_range': 'daily',
-        }
-        if original:
-            return return_value
-
-        return_value["start_date"] = self.start_date
-        return return_value
-
     def test_run(self):
         """Instantiate start date according to the desired data set and run the test"""
 
