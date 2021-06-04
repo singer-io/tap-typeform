@@ -13,19 +13,6 @@ class TypeformBookmarks(TypeformBaseTest):
     def name():
         return "tap_tester_typeform_bookmarks"
 
-    def get_properties(self, original: bool = True):
-        """Configuration properties required for the tap."""
-        return_value = {
-            'start_date' : '2015-03-15T00:00:00Z',
-            'forms': os.getenv('TAP_TYPEFORM_FORMS'),
-            'incremental_range': 'daily',
-        }
-        if original:
-            return return_value
-
-        return_value["start_date"] = self.start_date
-        return return_value
-
     @staticmethod
     def convert_state_to_utc(date_str):
         """
@@ -65,7 +52,7 @@ class TypeformBookmarks(TypeformBaseTest):
             days, hours, minutes = timedelta_by_stream[stream]
             calculated_state_as_datetime = state_as_datetime - datetime.timedelta(days=days, hours=hours, minutes=minutes)
 
-            state_format = '%Y-%m-%dT00:00:00+00:00' if self.is_insight(stream) else '%Y-%m-%dT%H:%M:%S-00:00'
+            state_format = '%Y-%m-%dT%H:%M:%S-00:00'
             calculated_state_formatted = datetime.datetime.strftime(calculated_state_as_datetime, state_format)
 
             stream_to_calculated_state[stream] = {state_key: calculated_state_formatted}
@@ -75,17 +62,10 @@ class TypeformBookmarks(TypeformBaseTest):
 
     def test_run(self):
         expected_streams =  self.expected_streams()
-        non_insight_streams = {stream for stream in expected_streams if not self.is_insight(stream)}
-        insight_streams = {stream for stream in expected_streams if self.is_insight(stream)}
 
-        # Testing against ads insights objects
         self.start_date = self.get_properties()['start_date']
         self.end_date = self.get_properties()['start_date']
-        self.bookmarks_test(insight_streams)
-
-        # Testing against core objects
-        self.end_date = '2021-02-09T00:00:00Z'
-        self.bookmarks_test(non_insight_streams)
+        self.bookmarks_test(expected_streams)
 
 
     def bookmarks_test(self, expected_streams):
@@ -162,9 +142,7 @@ class TypeformBookmarks(TypeformBaseTest):
                     first_bookmark_value_utc = self.convert_state_to_utc(first_bookmark_value)
                     second_bookmark_value_utc = self.convert_state_to_utc(second_bookmark_value)
                     simulated_bookmark_value = new_states['bookmarks'][stream][replication_key]
-                    simulated_bookmark_minus_lookback = self.timedelta_formatted(
-                        simulated_bookmark_value, days=1
-                    ) if self.is_insight(stream) else simulated_bookmark_value
+                    simulated_bookmark_minus_lookback = simulated_bookmark_value
 
 
                     # Verify the first sync sets a bookmark of the expected form
