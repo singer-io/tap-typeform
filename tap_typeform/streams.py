@@ -198,8 +198,8 @@ def sync_form(atx, form_id, start_date, end_date):
     return [response['total_items'], max_submitted_dt]
 
 
-def write_forms_state(atx, form, date_to_resume):
-    write_bookmark(atx.state, form, 'date_to_resume', date_to_resume.to_datetime_string())
+def write_forms_state(atx, stream_name, form_id, date_to_resume):
+    write_bookmark(atx.state, stream_name, form_id, date_to_resume.to_datetime_string())
     atx.write_state()
 
 
@@ -244,7 +244,7 @@ def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
 
     for form_id in atx.config.get('forms').split(','):
-        bookmark = atx.state.get('bookmarks', {}).get(form_id, {})
+        # bookmark = atx.state.get('bookmarks', {}) atx.stream_name, {})
 
         LOGGER.info('form: {} '.format(form_id))
 
@@ -286,7 +286,7 @@ def sync_forms(atx):
         # if the state file has a date_to_resume, we use it as it is.
         # if it doesn't exist, we overwrite by start date
         s_d = start_date.strftime("%Y-%m-%d %H:%M:%S")
-        last_date = pendulum.parse(bookmark.get('date_to_resume', s_d))
+        last_date = pendulum.parse(singer.get_bookmark(atx.state, stream_name, form_id, default=s_d))
         LOGGER.info('last_date: {} '.format(last_date))
 
 
@@ -313,18 +313,13 @@ def sync_forms(atx):
             while responses == 1000:
                 interim_next_date = pendulum.parse(max_submitted_at) + datetime.timedelta(seconds=1)
                 ut_interim_next_date = int(interim_next_date.timestamp())
-                write_forms_state(atx, form_id, interim_next_date)
+                write_forms_state(atx, stream_name, form_id, interim_next_date)
                 [responses, max_submitted_at] = sync_form(atx, form_id, ut_interim_next_date, ut_next_date)
 
             # if the prior sync is successful it will write the date_to_resume bookmark
-            write_forms_state(atx, form_id, next_date)
+            write_forms_state(atx, stream_name, form_id, next_date)
             current_date = next_date
-
-        reset_stream(atx.state, 'questions')
-        reset_stream(atx.state, 'landings')
-        reset_stream(atx.state, 'answers')
 
     if 'forms'in atx.selected_stream_ids:
         state = sync_latest_forms(atx)
         singer.write_state(state)
-        reset_stream(atx.state, 'forms')
