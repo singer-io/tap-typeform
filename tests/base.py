@@ -305,7 +305,3 @@ class TypeformBaseTest(unittest.TestCase):
     ##########################################################################
     ### Tap Specific Methods
     ##########################################################################
-
-    @staticmethod
-    def is_insight(stream):
-        return stream.startswith('ads_insights')
