@@ -55,6 +55,10 @@ class TypeformBaseTest(unittest.TestCase):
         return_value["start_date"] = self.start_date
         return return_value
 
+    def get_forms(self):
+        forms = self.get_properties()['forms']
+        return forms.split(',')
+
     @staticmethod
     def get_credentials():
         """Authentication information for the test account"""
