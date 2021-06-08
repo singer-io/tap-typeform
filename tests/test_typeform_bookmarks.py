@@ -46,16 +46,19 @@ class TypeformBookmarks(TypeformBaseTest):
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
         for stream, state in current_state['bookmarks'].items():
-            state_key, state_value = next(iter(state.keys())), next(iter(state.values()))
-            state_as_datetime = dateutil.parser.parse(state_value)
+            for state_key, state_value in state.items():
+                state_as_datetime = dateutil.parser.parse(state_value)
 
-            days, hours, minutes = timedelta_by_stream[stream]
-            calculated_state_as_datetime = state_as_datetime - datetime.timedelta(days=days, hours=hours, minutes=minutes)
+                days, hours, minutes = timedelta_by_stream[stream]
+                calculated_state_as_datetime = state_as_datetime - datetime.timedelta(days=days, hours=hours, minutes=minutes)
 
-            state_format = '%Y-%m-%dT%H:%M:%S-00:00'
-            calculated_state_formatted = datetime.datetime.strftime(calculated_state_as_datetime, state_format)
+                state_format = '%Y-%m-%dT%H:%M:%S-00:00'
+                calculated_state_formatted = datetime.datetime.strftime(calculated_state_as_datetime, state_format)
 
-            stream_to_calculated_state[stream] = {state_key: calculated_state_formatted}
+                if stream_to_calculated_state.get(stream) == "":
+                    stream_to_calculated_state[stream] = {state_key: calculated_state_formatted}
+                else:
+                    stream_to_calculated_state[stream][state_key] = calculated_state_formatted
 
         return stream_to_calculated_state
 
@@ -97,9 +100,17 @@ class TypeformBookmarks(TypeformBaseTest):
 
         new_states = {'bookmarks': dict()}
         simulated_states = self.calculated_states_by_stream(first_sync_bookmarks)
-        for stream, new_state in simulated_states.items():
-            new_states['bookmarks'][stream] = new_state
-        menagerie.set_state(conn_id, new_states)
+        # for stream, new_state in simulated_states.items():
+        #     new_states['bookmarks'][stream] = new_state
+        # menagerie.set_state(conn_id, new_states)
+
+        for stream in simulated_states.keys():
+            for state_key, state_value in simulated_states[stream].items():
+                if stream not in new_states['bookmarks']:
+                    new_states['bookmarks'][stream] = {}
+                if state_key not in new_states['bookmarks'][stream]:
+                    new_states['bookmarks'][stream][state_key] = state_value
+
 
         ##########################################################################
         ### Second Sync
@@ -115,24 +126,71 @@ class TypeformBookmarks(TypeformBaseTest):
 
         for stream in expected_streams:
             with self.subTest(stream=stream):
-
-                # expected values
                 expected_replication_method = expected_replication_methods[stream]
-
-                # collect information for assertions from syncs 1 & 2 base on expected values
-                first_sync_count = first_sync_record_count.get(stream, 0)
-                second_sync_count = second_sync_record_count.get(stream, 0)
-                first_sync_messages = [record.get('data') for record in
-                                       first_sync_records.get(stream).get('messages')
-                                       if record.get('action') == 'upsert']
-                second_sync_messages = [record.get('data') for record in
-                                        second_sync_records.get(stream).get('messages')
-                                        if record.get('action') == 'upsert']
-                first_bookmark_key_value = first_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
-                second_bookmark_key_value = second_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
-
-
                 if expected_replication_method == self.INCREMENTAL:
+
+                    # expected values
+
+                    # collect information for assertions from syncs 1 & 2 base on expected values
+                    first_sync_count = first_sync_record_count.get(stream, 0)
+                    second_sync_count = second_sync_record_count.get(stream, 0)
+                    first_sync_messages = [record.get('data') for record in
+                                        first_sync_records.get(stream).get('messages')
+                                        if record.get('action') == 'upsert']
+                    second_sync_messages = [record.get('data') for record in
+                                            second_sync_records.get(stream).get('messages')
+                                            if record.get('action') == 'upsert']
+                    first_bookmark_key_value = first_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
+                    second_bookmark_key_value = second_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
+
+                    if stream != 'forms':
+                        for form_key in self.get_forms():
+                            first_bookmark_value = first_bookmark_key_value.get(form_key)
+                            second_bookmark_value = second_bookmark_key_value.get(form_key)
+                            first_bookmark_value_utc = self.convert_state_to_utc(first_bookmark_value)
+                            second_bookmark_value_utc = self.convert_state_to_utc(second_bookmark_value)
+                            simulated_bookmark_value = new_states['bookmarks'][stream][form_key]
+                            simulated_bookmark_minus_lookback = simulated_bookmark_value
+
+
+                            # Verify the first sync sets a bookmark of the expected form
+                            self.assertIsNotNone(first_bookmark_key_value)
+                            self.assertIsNotNone(first_bookmark_key_value.get(form_key))
+
+                            # Verify the second sync sets a bookmark of the expected form
+                            self.assertIsNotNone(second_bookmark_key_value)
+                            self.assertIsNotNone(second_bookmark_key_value.get(form_key))
+
+                            # Verify the second sync bookmark is Equal to the first sync bookmark
+                            self.assertEqual(second_bookmark_value, first_bookmark_value) # assumes no changes to data during test
+
+
+                            for record in second_sync_messages:
+
+                                # Verify the second sync records respect the previous (simulated) bookmark value
+                                form_key_value = record.get(form_key)
+                                self.assertGreaterEqual(form_key_value, simulated_bookmark_minus_lookback,
+                                                        msg="Second sync records do not repect the previous bookmark.")
+
+                                # Verify the second sync bookmark value is the max replication key value for a given stream
+                                self.assertLessEqual(
+                                    form_key_value, second_bookmark_value_utc,
+                                    msg="Second sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
+                                )
+
+                            for record in first_sync_messages:
+
+                                # Verify the first sync bookmark value is the max replication key value for a given stream
+                                form_key_value = record.get(form_key)
+                                self.assertLessEqual(
+                                    form_key_value, first_bookmark_value_utc,
+                                    msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
+                                )
+
+
+                            # Verify the number of records in the 2nd sync is less then the first
+                            self.assertLess(second_sync_count, first_sync_count)
+
 
 
                     # collect information specific to incremental streams from syncs 1 & 2
