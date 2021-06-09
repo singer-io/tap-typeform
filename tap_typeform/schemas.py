@@ -26,7 +26,7 @@ PK_FIELDS = {
 
 REPLICATION_METHODS = {
     IDS.LANDINGS: {"replication_method": "FULL_TABLE", "replication_keys": None},
-    IDS.ANSWERS: {"replication_method": "FULL_TABLE", "replication_keys": None},
+    IDS.ANSWERS: {"replication_method": "INCREMENTAL", "replication_keys": ["landed_at"]},
     IDS.QUESTIONS: {"replication_method": "FULL_TABLE", "replication_keys": None},
     IDS.FORMS: {"replication_method": "INCREMENTAL", "replication_keys": ["last_updated_at"]}
 }
