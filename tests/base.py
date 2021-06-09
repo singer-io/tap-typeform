@@ -69,7 +69,8 @@ class TypeformBaseTest(unittest.TestCase):
         return {
             "answers": {
                 self.PRIMARY_KEYS: {"landing_id", "question_id"},
-                self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"landed_at"}
             },
             "landings": {
                 self.PRIMARY_KEYS: {"landing_id"},
