@@ -7,6 +7,8 @@ import singer
 from singer.bookmarks import write_bookmark, reset_stream
 from backoff import on_exception, expo, constant
 
+from .http import MetricsRateLimitException
+from tap_typeform import schemas
 
 LOGGER = singer.get_logger()
 
@@ -173,6 +175,7 @@ def sync_form(atx, form_id, start_date, end_date):
                     "type": answer.get('field',{}).get('type'),
                     "ref": answer.get('field',{}).get('ref'),
                     "data_type": data_type,
+                    "landed_at": row.get("landed_at"),
                     "answer": answer_value
                 })
 
@@ -184,8 +187,11 @@ def sync_form(atx, form_id, start_date, end_date):
     return [response['total_items'], max_submitted_dt]
 
 
-def write_forms_state(atx, stream_name, form_id, date_to_resume):
-    write_bookmark(atx.state, stream_name, form_id, date_to_resume.to_datetime_string())
+def write_forms_state(atx, stream_name, form_id, value):
+    if isinstance(value, dict):
+        write_bookmark(atx.state, stream_name, form_id, value)
+    else:
+        write_bookmark(atx.state, stream_name, form_id, value.to_datetime_string())
     atx.write_state()
 
 
@@ -224,6 +230,26 @@ def sync_latest_forms(atx):
                                   bookmark_date)
 
     return state
+
+
+def is_incremental(stream):
+    return schemas.REPLICATION_METHODS[stream].get("replication_method") == "INCREMENTAL"
+
+
+def get_replication_key(stream):
+    if is_incremental(stream):
+        return schemas.REPLICATION_METHODS[stream].get("replication_keys")[0]
+    return None
+
+
+def construct_bookmark(stream_name, value):
+    replication_key = get_replication_key(stream_name)
+    if replication_key:
+        bookmark_value = {replication_key: value.to_datetime_string()}
+    else:
+        bookmark_value = value
+
+    return bookmark_value
 
 
 def sync_forms(atx):
@@ -296,14 +322,17 @@ def sync_forms(atx):
             # but this also might cause some minor loss of data.
             # there's no ideal scenario here since the API has no other way than using
             # time ranges to step through data.
+            bookmark_value = construct_bookmark(stream_name, next_date)
+
             while responses == 1000:
                 interim_next_date = pendulum.parse(max_submitted_at) + datetime.timedelta(seconds=1)
                 ut_interim_next_date = int(interim_next_date.timestamp())
-                write_forms_state(atx, stream_name, form_id, interim_next_date)
+                bookmark_value = construct_bookmark(stream_name, interim_next_date)
+                write_forms_state(atx, stream_name, form_id, bookmark_value)
                 [responses, max_submitted_at] = sync_form(atx, form_id, ut_interim_next_date, ut_next_date)
 
             # if the prior sync is successful it will write the date_to_resume bookmark
-            write_forms_state(atx, stream_name, form_id, next_date)
+            write_forms_state(atx, stream_name, form_id, bookmark_value)
             current_date = next_date
 
     if 'forms'in atx.selected_stream_ids:
