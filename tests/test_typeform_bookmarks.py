@@ -161,7 +161,6 @@ class TypeformBookmarks(TypeformBaseTest):
                                         if record.get('action') == 'upsert']
 
 
-
                     replication_key = next(iter(expected_replication_keys[stream]))
 
                     if stream != 'forms':
