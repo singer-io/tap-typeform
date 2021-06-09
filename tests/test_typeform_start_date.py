@@ -89,47 +89,47 @@ class TypeformStartDateTest(TypeformBaseTest):
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
 
-                if self.is_insight(stream):
+                # if self.is_insight(stream):
 
-                    # collect information specific to incremental streams from syncs 1 & 2
-                    expected_replication_key = next(iter(self.expected_replication_keys().get(stream)))
-                    replication_dates_1 =[row.get('data').get(expected_replication_key) for row in
-                                          synced_records_1.get(stream, {'messages': []}).get('messages', [])
-                                          if row.get('data')]
-                    replication_dates_2 =[row.get('data').get(expected_replication_key) for row in
-                                          synced_records_2.get(stream, {'messages': []}).get('messages', [])
-                                          if row.get('data')]
+                #     # collect information specific to incremental streams from syncs 1 & 2
+                #     expected_replication_key = next(iter(self.expected_replication_keys().get(stream)))
+                #     replication_dates_1 =[row.get('data').get(expected_replication_key) for row in
+                #                           synced_records_1.get(stream, {'messages': []}).get('messages', [])
+                #                           if row.get('data')]
+                #     replication_dates_2 =[row.get('data').get(expected_replication_key) for row in
+                #                           synced_records_2.get(stream, {'messages': []}).get('messages', [])
+                #                           if row.get('data')]
 
-                    # # Verify replication key is greater or equal to start_date for sync 1
-                    for replication_date in replication_dates_1:
-                        self.assertGreaterEqual(
-                            self.parse_date(replication_date), self.parse_date(expected_start_date_1),
-                                msg="Report pertains to a date prior to our start date.\n" +
-                                "Sync start_date: {}\n".format(expected_start_date_1) +
-                                "Record date: {} ".format(replication_date)
-                        )
+                #     # # Verify replication key is greater or equal to start_date for sync 1
+                #     for replication_date in replication_dates_1:
+                #         self.assertGreaterEqual(
+                #             self.parse_date(replication_date), self.parse_date(expected_start_date_1),
+                #                 msg="Report pertains to a date prior to our start date.\n" +
+                #                 "Sync start_date: {}\n".format(expected_start_date_1) +
+                #                 "Record date: {} ".format(replication_date)
+                #         )
 
-                    # Verify replication key is greater or equal to start_date for sync 2
-                    for replication_date in replication_dates_2:
-                        self.assertGreaterEqual(
-                            self.parse_date(replication_date), self.parse_date(expected_start_date_2),
-                                msg="Report pertains to a date prior to our start date.\n" +
-                                "Sync start_date: {}\n".format(expected_start_date_2) +
-                                "Record date: {} ".format(replication_date)
-                        )
+                #     # Verify replication key is greater or equal to start_date for sync 2
+                #     for replication_date in replication_dates_2:
+                #         self.assertGreaterEqual(
+                #             self.parse_date(replication_date), self.parse_date(expected_start_date_2),
+                #                 msg="Report pertains to a date prior to our start date.\n" +
+                #                 "Sync start_date: {}\n".format(expected_start_date_2) +
+                #                 "Record date: {} ".format(replication_date)
+                #         )
 
-                    # Verify the number of records replicated in sync 1 is greater than the number
-                    # of records replicated in sync 2
-                    self.assertGreater(record_count_sync_1, record_count_sync_2)
+                #     # Verify the number of records replicated in sync 1 is greater than the number
+                #     # of records replicated in sync 2
+                #     self.assertGreater(record_count_sync_1, record_count_sync_2)
 
-                    # Verify the records replicated in sync 2 were also replicated in sync 1
-                    self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1))
+                #     # Verify the records replicated in sync 2 were also replicated in sync 1
+                #     self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1))
 
-                else:
+                # else:
 
-                    # Verify that the 2nd sync with a later start date replicates the same number of
-                    # records as the 1st sync.
-                    self.assertEqual(record_count_sync_2, record_count_sync_1)
+                # Verify that the 2nd sync with a later start date replicates the same number of
+                # records as the 1st sync.
+                self.assertEqual(record_count_sync_2, record_count_sync_1)
 
-                    # Verify by primary key the same records are replicated in the 1st and 2nd syncs
-                    self.assertSetEqual(primary_keys_sync_1, primary_keys_sync_2)
+                # Verify by primary key the same records are replicated in the 1st and 2nd syncs
+                self.assertSetEqual(primary_keys_sync_1, primary_keys_sync_2)
