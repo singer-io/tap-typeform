@@ -43,11 +43,16 @@ class TypeformBookmarks(TypeformBaseTest):
         """
         timedelta_by_stream = {stream: [1,0,0]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_streams()}
+        expected_replication_keys = self.expected_replication_keys()
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
         for stream, state in current_state['bookmarks'].items():
-            for state_key, state_value in state.items():
-                state_as_datetime = dateutil.parser.parse(state_value)
+            for state_key in state.keys():
+                if stream != "forms":
+                    replication_key = next(iter(expected_replication_keys[stream]))
+                    state_as_datetime = dateutil.parser.parse(state[state_key][replication_key])
+                else:
+                    state_as_datetime = dateutil.parser.parse(state[state_key])
 
                 days, hours, minutes = timedelta_by_stream[stream]
                 calculated_state_as_datetime = state_as_datetime - datetime.timedelta(days=days, hours=hours, minutes=minutes)
@@ -142,11 +147,12 @@ class TypeformBookmarks(TypeformBaseTest):
                                             if record.get('action') == 'upsert']
                     first_bookmark_key_value = first_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
                     second_bookmark_key_value = second_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
+                    replication_key = next(iter(expected_replication_keys[stream]))
 
                     if stream != 'forms':
                         for form_key in self.get_forms():
-                            first_bookmark_value = first_bookmark_key_value.get(form_key)
-                            second_bookmark_value = second_bookmark_key_value.get(form_key)
+                            first_bookmark_value = first_bookmark_key_value.get(form_key, {}).get(replication_key)
+                            second_bookmark_value = second_bookmark_key_value.get(form_key, {}).get(replication_key)
                             first_bookmark_value_utc = self.convert_state_to_utc(first_bookmark_value)
                             second_bookmark_value_utc = self.convert_state_to_utc(second_bookmark_value)
                             simulated_bookmark_value = new_states['bookmarks'][stream][form_key]
@@ -194,7 +200,6 @@ class TypeformBookmarks(TypeformBaseTest):
 
 
                     # collect information specific to incremental streams from syncs 1 & 2
-                    replication_key = next(iter(expected_replication_keys[stream]))
                     first_bookmark_value = first_bookmark_key_value.get(replication_key)
                     second_bookmark_value = second_bookmark_key_value.get(replication_key)
                     first_bookmark_value_utc = self.convert_state_to_utc(first_bookmark_value)
