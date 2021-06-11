@@ -9,6 +9,7 @@ from singer import utils
 from singer.catalog import Catalog, CatalogEntry, Schema
 from tap_typeform import streams
 from tap_typeform.context import Context
+from tap_typeform.http import Client
 from tap_typeform import schemas
 
 REQUIRED_CONFIG_KEYS = ["token", "forms", "incremental_range"]
@@ -17,6 +18,8 @@ LOGGER = singer.get_logger()
 
 #def check_authorization(atx):
 #    atx.client.get('/settings')
+class FormMistmatchError(Exception):
+    pass
 
 
 # Some taps do discovery dynamically where the catalog is read in from a
@@ -81,11 +84,25 @@ def sync(atx):
     LOGGER.info('--------------------')
 
 
+def validate_form_ids(config):
+    """Validate the form ids passed in the config"""
+    client = Client(config)
+    forms_from_config = set(config.get('forms').split(','))
+    forms_from_api = {form['id'] for form in client.get_forms()}
+
+    mismatched_forms = forms_from_config.difference(forms_from_api)
+
+    if len(mismatched_forms) > 0:
+        LOGGER.fatal(f"FormMistmatchError: forms {mismatched_forms} not returned by API")
+        raise FormMistmatchError
+
+
 @utils.handle_top_exception(LOGGER)
 def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     atx = Context(args.config, args.state)
     if args.discover:
+        validate_form_ids(args.config)
         # the schema is static from file so we don't need to pass in atx for connection info.
         catalog = discover()
         json.dump(catalog.to_dict(), sys.stdout)
