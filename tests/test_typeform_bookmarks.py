@@ -100,9 +100,9 @@ class TypeformBookmarks(TypeformBaseTest):
 
         new_states = {'bookmarks': dict()}
         simulated_states = self.calculated_states_by_stream(first_sync_bookmarks)
-        # for stream, new_state in simulated_states.items():
-        #     new_states['bookmarks'][stream] = new_state
-        # menagerie.set_state(conn_id, new_states)
+        for stream, new_state in simulated_states.items():
+            new_states['bookmarks'][stream] = new_state
+        menagerie.set_state(conn_id, new_states)
 
         for stream in simulated_states.keys():
             for state_key, state_value in simulated_states[stream].items():
