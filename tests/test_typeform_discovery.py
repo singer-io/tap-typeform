@@ -85,32 +85,10 @@ class DiscoveryTest(TypeformBaseTest):
                                 msg="There is NOT only one top level breadcrumb for {}".format(stream) + \
                                 "\nstream_properties | {}".format(stream_properties))
 
-                # BUG_1 | https://stitchdata.atlassian.net/browse/SRCE-4855
-                failing_with_no_replication_keys = {}
-                if stream not in failing_with_no_replication_keys:  # BUG_1
-                    # verify replication key(s) match expectations
-                    self.assertSetEqual(
-                        expected_replication_keys, actual_replication_keys
-                    )
-
                 # verify primary key(s) match expectations
                 self.assertSetEqual(
                     expected_primary_keys, actual_primary_keys,
                 )
-
-                # BUG_2 | https://stitchdata.atlassian.net/browse/SRCE-4856
-                failing_with_no_replication_method = {}
-                if stream not in failing_with_no_replication_method:  # BUG_2
-                    # verify the replication method matches our expectations
-                    self.assertEqual(
-                        expected_replication_method, actual_replication_method
-                    )
-
-                    # verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
-                    if actual_replication_keys:
-                        self.assertEqual(self.INCREMENTAL, actual_replication_method)
-                    else:
-                        self.assertEqual(self.FULL_TABLE, actual_replication_method)
 
                 # verify that primary keys and replication keys
                 # are given the inclusion of automatic in metadata.

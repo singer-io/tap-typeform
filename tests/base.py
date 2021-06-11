@@ -7,7 +7,7 @@ import os
 from datetime import timedelta
 from datetime import datetime as dt
 
-import singer
+from singer import get_logger
 from tap_tester import connections, menagerie, runner
 
 
@@ -28,7 +28,7 @@ class TypeformBaseTest(unittest.TestCase):
     FULL_TABLE = "FULL_TABLE"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
     BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00+00:00"
-    LOGGER = singer.get_logger()
+    LOGGER = get_logger()
 
     start_date = ""
 
