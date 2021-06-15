@@ -7,6 +7,9 @@ LOGGER = singer.get_logger()
 class RateLimitException(Exception):
     pass
 
+class TypeformServerException:
+    pass
+
 class MetricsRateLimitException(Exception):
     pass
 
@@ -22,8 +25,12 @@ class Client(object):
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,
-                          RateLimitException,
-                          max_tries=10,
+                          TypeformServerException,
+                          max_tries=3,
+                          factor=2)
+    @backoff.on_exception(backoff.expo,
+                          (RateLimitException, MetricsRateLimitException),
+                          max_tries=3,
                           factor=2)
     def request(self, method, url, **kwargs):
         # note that typeform response api doesn't return limit headers
@@ -35,8 +42,10 @@ class Client(object):
 
         response = requests.request(method, url, **kwargs)
 
-        if response.status_code in [429, 503]:
+        if response.status_code == 429:
             raise RateLimitException()
+        if response.status_code >= 500:
+            raise TypeformServerException
         if response.status_code == 423:
             raise MetricsRateLimitException()
         try:
