@@ -4,14 +4,65 @@ import singer
 
 LOGGER = singer.get_logger()
 
-class RateLimitException(Exception):
+
+class TypeformError(Exception):
+    def __init__(self, message=None, response=None):
+        super().__init__(message)
+        self.message = message
+        self.response = response
+
+class TypeformBadRequestError(TypeformError):
     pass
 
-class TypeformServerException:
+class TypeformUnauthorizedError(TypeformError):
     pass
 
-class MetricsRateLimitException(Exception):
+class TypeformForbiddenError(TypeformError):
     pass
+
+class TypeformNotFoundError(TypeformError):
+    pass
+
+class TypeformTooManyError(TypeformError):
+    pass
+
+class TypeformInternalError(TypeformError):
+    pass
+
+class TypeformNotAvailableError(TypeformError):
+    pass
+
+
+ERROR_CODE_EXCEPTION_MAPPING = {
+    400: {
+        "raise_exception": TypeformBadRequestError,
+        "message": "A validation exception has occurred."
+    },
+    401: {
+        "raise_exception": TypeformUnauthorizedError,
+        "message": "Invalid authorization credentials."
+    },
+    403: {
+        "raise_exception": TypeformForbiddenError,
+        "message": "User doesn't have permission to access the resource."
+    },
+    404: {
+        "raise_exception": TypeformNotFoundError,
+        "message": "The resource you have specified cannot be found."
+    },
+    429: {
+        "raise_exception": TypeformTooManyError,
+        "message": "The API rate limit for your organisation/application pairing has been exceeded"
+    },
+    500: {
+        "raise_exception": TypeformInternalError,
+        "message": "An unhandled error with the Typeform API. Contact the Typeform API team if problems persist."
+    },
+    503: {
+        "raise_exception": TypeformNotAvailableError,
+        "message": "API service is currently unavailable."
+    }
+}
 
 class Client(object):
     BASE_URL = 'https://api.typeform.com'
@@ -25,11 +76,11 @@ class Client(object):
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,
-                          TypeformServerException,
+                          (TypeformInternalError, TypeformNotAvailableError),
                           max_tries=3,
                           factor=2)
     @backoff.on_exception(backoff.expo,
-                          (RateLimitException, MetricsRateLimitException),
+                          TypeformTooManyError,
                           max_tries=3,
                           factor=2)
     def request(self, method, url, **kwargs):
@@ -42,17 +93,10 @@ class Client(object):
 
         response = requests.request(method, url, **kwargs)
 
-        if response.status_code == 429:
-            raise RateLimitException()
-        if response.status_code >= 500:
-            raise TypeformServerException
-        if response.status_code == 423:
-            raise MetricsRateLimitException()
-        try:
-            response.raise_for_status()
-        except:
-            LOGGER.error('{} - {}'.format(response.status_code, response.text))
-            raise
+        if response.status_code != 200:
+            raise_for_error(response)
+            return None
+
         if 'total_items' in response.json():
             LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
         return response.json()
@@ -88,3 +132,39 @@ class Client(object):
         endpoint = f"forms/{form_id}/responses"
         url = self.build_url(endpoint)
         return self.request('get', url, **kwargs)
+
+
+def raise_for_error(response):
+    try:
+        response.raise_for_status()
+    except (requests.HTTPError, requests.ConnectionError) as error:
+        try:
+            error_code = response.status_code
+
+            # Handling status code 429 specially since the required information is present in the headers
+            if error_code == 429:
+                resp_headers = response.headers
+                api_rate_limit_message = ERROR_CODE_EXCEPTION_MAPPING[429]["message"]
+                message = "HTTP-error-code: 429, Error: {}. Please retry after {} seconds".format(api_rate_limit_message, resp_headers.get("Retry-After"))
+
+            # Handling status code 403 specially since response of API does not contain enough information
+            elif error_code in (403, 401):
+                api_message = ERROR_CODE_EXCEPTION_MAPPING[error_code]["message"]
+                message = "HTTP-error-code: {}, Error: {}".format(error_code, api_message)
+            else:
+                # Forming a response message for raising custom exception
+                try:
+                    response_json = response.json()
+                except Exception:
+                    response_json = {}
+
+                message = "HTTP-error-code: {}, Error: {}".format(
+                    error_code,
+                    response_json.get("description", "Uknown Error"))
+
+            exc = ERROR_CODE_EXCEPTION_MAPPING.get(error_code, {}).get("raise_exception", TypeformError)
+            message = ERROR_CODE_EXCEPTION_MAPPING.get(error_code, {}).get("message", "")
+            raise exc(message, response) from None
+
+        except (ValueError, TypeError):
+            raise TypeformError(error) from None
