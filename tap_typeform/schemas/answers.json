@@ -32,6 +32,5 @@
       "selected": true
     }
   },
-  "key_properties": ["landing_id", "question_id"],
-  "bookmark_properties": ["landing_id", "question_id"]
+  "key_properties": ["landing_id", "question_id"]
 }
