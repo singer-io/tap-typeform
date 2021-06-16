@@ -39,7 +39,6 @@ def discover():
             'schema': schema,
             'metadata': meta,
             'replication_method': replication_method,
-            'replication_key': replication_keys
         })
     return Catalog.from_dict({'streams': streams})
 
