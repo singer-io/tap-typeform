@@ -39,6 +39,7 @@ def discover():
             'schema': schema,
             'metadata': meta,
             'replication_method': replication_method,
+            'replication_key': replication_keys[0] if replication_keys else None
         })
     return Catalog.from_dict({'streams': streams})
 
