@@ -44,7 +44,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     403: {
         "raise_exception": TypeformForbiddenError,
-        "message": "User doesn't have permission to access the resource."
+        "message": "HTTP-error-code: 403, Error: User doesn't have permission to access the resource."
     },
     404: {
         "raise_exception": TypeformNotFoundError,
