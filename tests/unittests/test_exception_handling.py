@@ -6,34 +6,6 @@ import requests
 import tap_typeform.http as client_
 
 
-def mocked_session(*args, **kwargs):
-    class Mocksession:
-        def __init__(self, json_data, status_code, content, headers, raise_error):
-            self.text = json_data
-            self.status_code = status_code
-            self.raise_error = raise_error
-            if headers:
-                self.headers = headers
-
-        def raise_for_status(self):
-            if not self.raise_error:
-                return self.status_code
-
-            raise requests.HTTPError("sample message")
-
-        def json(self):
-            return self.text
-
-    arguments_to_session = args[0]
-
-    json_data = arguments_to_session[0]
-    status_code = arguments_to_session[1]
-    content = arguments_to_session[2]
-    headers = arguments_to_session[3]
-    raise_error = arguments_to_session[4]
-    return Mocksession(json_data, status_code, content, headers, raise_error)
-
-
 class Mockresponse:
     def __init__(self, resp, status_code, content=[], headers=None, raise_error=False):
         self.json_data = resp
@@ -41,9 +13,6 @@ class Mockresponse:
         self.content = content
         self.headers = headers
         self.raise_error = raise_error
-
-    def prepare(self):
-        return (self.json_data, self.status_code, self.content, self.headers, self.raise_error)
 
     def raise_for_status(self):
         if not self.raise_error:
@@ -124,43 +93,12 @@ def mocked_jsondecode_successful_request(*args, **kwargs):
     return Mockresponse(json_decode_str, 200)
 
 
-@mock.patch('requests.Session.send', side_effect=mocked_session)
+@mock.patch('requests.Request', side_effect=Mockresponse)
 class TestClientExceptionHandling(unittest.TestCase):
     """
     Test cases to verify if the exceptions are handled as expected while communicating with Xero Environment 
     """
     endpoint = "forms"
-
-    @mock.patch('requests.Request', side_effect=mocked_jsondecode_failing_request)
-    def test_json_decode_exception(self, mocked_session, mocked_jsondecode_failing_request):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except json.decoder.JSONDecodeError as e:
-            pass
-
-        self.assertEqual(mocked_jsondecode_failing_request.call_count, 3)
-        self.assertEqual(mocked_session.call_count, 3)
-
-
-    @mock.patch('requests.Request', side_effect=mocked_jsondecode_successful_request)
-    def test_normal_filter_execution(self, mocked_session, mocked_jsondecode_successful_request):
-        config = {}
-        tap_stream_id = "contacts"
-
-        xero_client = client_.XeroClient(config)
-        xero_client.access_token = "123"
-        xero_client.tenant_id = "123"
-        try:
-            filter_func_exec = xero_client.filter(tap_stream_id)
-        except json.decoder.JSONDecodeError as e:
-            pass
-
-        self.assertEqual(mocked_jsondecode_successful_request.call_count, 1)
-        self.assertEqual(mocked_session.call_count, 1)
-
 
     @mock.patch('requests.Request', side_effect=mocked_badrequest_400_error)
     def test_badrequest_400_error(self, mocked_session, mocked_badrequest_400_error):
