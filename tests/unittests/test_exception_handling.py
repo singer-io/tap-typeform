@@ -45,7 +45,7 @@ def mocked_notfound_404_error(*args, **kwargs):
     return Mockresponse(json_decode_str, 404, raise_error=True)
 
 
-def mocked_failed_429_request_in_day(*args, **kwargs):
+def mocked_failed_429_request(*args, **kwargs):
     json_decode_str = ''
     headers = {"Retry-After": 1000, "X-Rate-Limit-Problem": "day"}
     return Mockresponse(json_decode_str, 429, headers=headers, raise_error=True)
@@ -93,14 +93,14 @@ def mocked_jsondecode_successful_request(*args, **kwargs):
     return Mockresponse(json_decode_str, 200)
 
 
-@mock.patch('requests.Request', side_effect=Mockresponse)
+@mock.patch('requests.request', side_effect=Mockresponse)
 class TestClientExceptionHandling(unittest.TestCase):
     """
     Test cases to verify if the exceptions are handled as expected while communicating with Xero Environment 
     """
     endpoint = "forms"
 
-    @mock.patch('requests.Request', side_effect=mocked_badrequest_400_error)
+    @mock.patch('requests.request', side_effect=mocked_badrequest_400_error)
     def test_badrequest_400_error(self, mocked_session, mocked_badrequest_400_error):
         config = {'token': '123'}
         client = client_.Client(config)
@@ -115,7 +115,7 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_unauthorized_401_error)
+    @mock.patch('requests.request', side_effect=mocked_unauthorized_401_error)
     def test_unauthorized_401_error(self, mocked_session, mocked_unauthorized_401_error):
         config = {'token': '123'}
         client = client_.Client(config)
@@ -130,7 +130,7 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_forbidden_403_exception)
+    @mock.patch('requests.request', side_effect=mocked_forbidden_403_exception)
     def test_forbidden_403_exception(self, mocked_session, mocked_forbidden_403_exception):
         config = {'token': '123'}
         client = client_.Client(config)
@@ -145,7 +145,7 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_notfound_404_error)
+    @mock.patch('requests.request', side_effect=mocked_notfound_404_error)
     def test_notfound_404_error(self, mocked_session, mocked_notfound_404_error):
         config = {'token': '123'}
         client = client_.Client(config)
@@ -160,7 +160,7 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_internalservererror_500_error)
+    @mock.patch('requests.request', side_effect=mocked_internalservererror_500_error)
     def test_internalservererror_500_error(self, mocked_session, mocked_internalservererror_500_error):
         config = {'token': '123'}
         client = client_.Client(config)
@@ -175,7 +175,7 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_not_available_503_error)
+    @mock.patch('requests.request', side_effect=mocked_not_available_503_error)
     def test_not_available_503_error(self, mocked_session, mocked_not_available_503_error):
         config = {'token': '123'}
         client = client_.Client(config)
@@ -190,8 +190,8 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_failed_429_request_in_day)
-    def test_too_many_requests_429_in_day_error(self, mocked_session, mocked_failed_429_request_in_day):
+    @mock.patch('requests.request', side_effect=mocked_failed_429_request)
+    def test_too_many_requests_429(self, mocked_session, mocked_failed_429_request):
         config = {'token': '123'}
         client = client_.Client(config)
         url = client.build_url(self.endpoint)
@@ -205,8 +205,8 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
 
-    @mock.patch('requests.Request', side_effect=mocked_failed_429_request_in_day)
-    def test_too_many_requests_in_day_429_not_backoff_behavior(self, mocked_session, mocked_failed_429_request_in_day):
+    @mock.patch('requests.request', side_effect=mocked_failed_429_request)
+    def test_too_many_requests_429_not_backoff_behavior(self, mocked_session, mocked_failed_429_request):
         config = {'token': '123'}
         client = client_.Client(config)
         url = client.build_url(self.endpoint)
@@ -216,11 +216,11 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
         #Verify daily limit should not backoff
-        self.assertEqual(mocked_failed_429_request_in_day.call_count, 1)
+        self.assertEqual(mocked_failed_429_request.call_count, 1)
         self.assertEqual(mocked_session.call_count, 1)
 
 
-    @mock.patch('requests.Request', side_effect=mocked_internalservererror_500_error)
+    @mock.patch('requests.request', side_effect=mocked_internalservererror_500_error)
     def test_internalservererror_500_backoff_behaviour(self, mocked_session, mocked_internalservererror_500_error):
         config = {'token': '123'}
         client = client_.Client(config)

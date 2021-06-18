@@ -164,7 +164,8 @@ def raise_for_error(response):
 
             exc = ERROR_CODE_EXCEPTION_MAPPING.get(error_code, {}).get("raise_exception", TypeformError)
             message = ERROR_CODE_EXCEPTION_MAPPING.get(error_code, {}).get("message", "")
-            raise exc(message, response) from None
+            formatted_message = f"HTTP-error-code: {error_code}, Error: {message}"
+            raise exc(formatted_message, response) from None
 
         except (ValueError, TypeError):
             raise TypeformError(error) from None
