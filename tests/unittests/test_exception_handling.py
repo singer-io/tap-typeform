@@ -1,4 +1,3 @@
-import json
 import unittest
 from unittest import mock
 
@@ -51,12 +50,6 @@ def mocked_failed_429_request(*args, **kwargs):
     return Mockresponse(json_decode_str, 429, headers=headers, raise_error=True)
 
 
-def mocked_failed_429_request_in_minute(*args, **kwargs):
-    json_decode_str = ''
-    headers = {"Retry-After": 5, "X-Rate-Limit-Problem": "minute"}
-    return Mockresponse(json_decode_str, 429, headers=headers, raise_error=True)
-
-
 def mocked_internalservererror_500_error(*args, **kwargs):
     json_decode_str = {}
 
@@ -73,24 +66,6 @@ def mocked_not_available_503_error(*args, **kwargs):
     json_decode_str = {}
 
     return Mockresponse(json_decode_str, 503, raise_error=True)
-
-
-def mock_successful_request(*args, **kwargs):
-    json_decode_str = {}
-
-    return Mockresponse(json_decode_str, 200)
-
-
-def mocked_jsondecode_failing_request(*args, **kwargs):
-    # Invalid json string
-    json_decode_error_str = '{\'Contacts\': \'value\'}'
-    return Mockresponse(json_decode_error_str, 200)
-
-
-def mocked_jsondecode_successful_request(*args, **kwargs):
-    # Valid json string
-    json_decode_str = '{"Contacts": "value"}'
-    return Mockresponse(json_decode_str, 200)
 
 
 @mock.patch('requests.request', side_effect=Mockresponse)
@@ -216,8 +191,7 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
         #Verify daily limit should not backoff
-        self.assertEqual(mocked_failed_429_request.call_count, 1)
-        self.assertEqual(mocked_session.call_count, 1)
+        self.assertEqual(mocked_failed_429_request.call_count, 3)
 
 
     @mock.patch('requests.request', side_effect=mocked_internalservererror_500_error)
@@ -231,7 +205,6 @@ class TestClientExceptionHandling(unittest.TestCase):
             pass
 
         self.assertEqual(mocked_internalservererror_500_error.call_count, 3)
-        self.assertEqual(mocked_session.call_count, 3)
 
 
 if __name__ == '__main__':
