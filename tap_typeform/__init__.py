@@ -32,6 +32,13 @@ def discover():
                                               replication_method=replication_method,
                                               valid_replication_keys=replication_keys)
 
+        meta = metadata.to_map(meta)
+
+        if replication_keys:
+            meta = metadata.write(meta, ('properties', replication_keys[0]), 'inclusion', 'automatic')
+
+        meta = metadata.to_list(meta)
+
         streams.append({
             'stream': tap_stream_id,
             'tap_stream_id': tap_stream_id,
