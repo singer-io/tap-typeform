@@ -181,7 +181,7 @@ class TestClientExceptionHandling(unittest.TestCase):
 
 
     @mock.patch('requests.request', side_effect=mocked_failed_429_request)
-    def test_too_many_requests_429_not_backoff_behavior(self, mocked_session, mocked_failed_429_request):
+    def test_too_many_requests_429_backoff_behavior(self, mocked_session, mocked_failed_429_request):
         config = {'token': '123'}
         client = client_.Client(config)
         url = client.build_url(self.endpoint)
