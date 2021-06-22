@@ -44,7 +44,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     403: {
         "raise_exception": TypeformForbiddenError,
-        "message": "HTTP-error-code: 403, Error: User doesn't have permission to access the resource."
+        "message": "User doesn't have permission to access the resource."
     },
     404: {
         "raise_exception": TypeformNotFoundError,
@@ -83,7 +83,7 @@ class Client(object):
                           TypeformTooManyError,
                           max_tries=3,
                           factor=2)
-    def request(self, method, url, **kwargs):
+    def request(self, method, url, params=None, **kwargs):
         # note that typeform response api doesn't return limit headers
 
         if 'headers' not in kwargs:
@@ -91,7 +91,9 @@ class Client(object):
         if self.token:
             kwargs['headers']['Authorization'] = self.token
 
-        response = requests.request(method, url, **kwargs)
+        request = requests.Request(method, url, headers=kwargs['headers'], params=params)
+
+        response = self.session.send(request.prepare())
 
         if response.status_code != 200:
             raise_for_error(response)

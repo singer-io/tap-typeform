@@ -313,6 +313,6 @@ def sync_forms(atx):
     if 'forms'in atx.selected_stream_ids:
         state = sync_latest_forms(atx)
 
-    singer.write_state(state)
+        singer.write_state(state)
 
-    reset_stream(atx.state, 'forms')
+        reset_stream(atx.state, 'forms')
