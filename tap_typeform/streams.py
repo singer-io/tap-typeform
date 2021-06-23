@@ -251,6 +251,15 @@ def construct_bookmark(stream_name, value):
 
     return bookmark_value
 
+def get_bookmark_value(state, stream_name, key, default=None):
+    # singer.get_bookmark(atx.state, stream_name, form_id, default=s_d)
+    bookmark = singer.get_bookmark(state, stream_name, key, default=default)
+
+    if isinstance(bookmark, dict):
+        return list(bookmark.values())[0]
+
+    return bookmark
+
 
 def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
@@ -298,7 +307,7 @@ def sync_forms(atx):
         # if the state file has a date_to_resume, we use it as it is.
         # if it doesn't exist, we overwrite by start date
         s_d = start_date.strftime("%Y-%m-%d %H:%M:%S")
-        last_date = pendulum.parse(singer.get_bookmark(atx.state, stream_name, form_id, default=s_d))
+        last_date = pendulum.parse(get_bookmark_value(atx.state, stream_name, form_id, default=s_d))
         LOGGER.info('last_date: {} '.format(last_date))
 
 
