@@ -49,10 +49,7 @@ class TypeformBaseTest(unittest.TestCase):
             'forms': os.getenv('TAP_TYPEFORM_FORMS'),
             'incremental_range': 'daily',
         }
-        if original:
-            return return_value
 
-        return_value["start_date"] = self.start_date
         return return_value
 
     def get_forms(self):
