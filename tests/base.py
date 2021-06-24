@@ -30,8 +30,6 @@ class TypeformBaseTest(unittest.TestCase):
     BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00+00:00"
     LOGGER = get_logger()
 
-    start_date = ""
-
     @staticmethod
     def tap_name():
         """The name of the tap"""
@@ -49,10 +47,7 @@ class TypeformBaseTest(unittest.TestCase):
             'forms': os.getenv('TAP_TYPEFORM_FORMS'),
             'incremental_range': 'daily',
         }
-        if original:
-            return return_value
 
-        return_value["start_date"] = self.start_date
         return return_value
 
     def get_forms(self):
