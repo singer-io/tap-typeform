@@ -18,7 +18,7 @@ class TypeformStartDateTest(TypeformBaseTest):
         """Instantiate start date according to the desired data set and run the test"""
 
         self.start_date_1 = self.get_properties().get('start_date')
-        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=12)
+        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=47)
 
         self.start_date = self.start_date_1
 
