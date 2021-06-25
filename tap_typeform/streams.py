@@ -82,6 +82,10 @@ def get_forms(atx):
     LOGGER.info('All forms query')
     return atx.client.get_forms()
 
+def get_landings(atx, form_id):
+    LOGGER.info('All landings query')
+    return atx.client.get_form_responses(form_id)
+
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
         start = time.monotonic()
@@ -127,32 +131,11 @@ def sync_form(atx, form_id, start_date, end_date):
             else:
                 time.sleep(METRIC_JOB_POLL_SLEEP)
 
-    landings_data_rows = []
     answers_data_rows = []
 
     max_submitted_dt = ''
 
     for row in data:
-        if 'hidden' not in row:
-            hidden = ''
-        else:
-            hidden = json.dumps(row['hidden'])
-
-        # the schema here reflects what we saw through testing
-        # the typeform documentation is subtly inaccurate
-        if 'landings' in atx.selected_stream_ids:
-            landings_data_rows.append({
-                "landing_id": row['landing_id'],
-                "token": row['token'],
-                "landed_at": row['landed_at'],
-                "submitted_at": row['submitted_at'],
-                "user_agent": row['metadata']['user_agent'],
-                "platform": row['metadata']['platform'],
-                "referer": row['metadata']['referer'],
-                "network_id": row['metadata']['network_id'],
-                "browser": row['metadata']['browser'],
-                "hidden": hidden
-            })
 
         max_submitted_dt = row['submitted_at']
 
@@ -177,8 +160,6 @@ def sync_form(atx, form_id, start_date, end_date):
                     "answer": answer_value
                 })
 
-    if 'landings' in atx.selected_stream_ids:
-        write_records(atx, 'landings', landings_data_rows)
     if 'answers' in atx.selected_stream_ids:
         write_records(atx, 'answers', answers_data_rows)
 
@@ -259,6 +240,35 @@ def get_bookmark_value(state, stream_name, key, default=None):
     return bookmark
 
 
+def sync_landings(atx, form_id):
+    response = get_landings(atx, form_id)
+    landings_data_rows = []
+
+    for row in response['items']:
+        if 'hidden' not in row:
+            hidden = ''
+        else:
+            hidden = json.dumps(row['hidden'])
+
+        # the schema here reflects what we saw through testing
+        # the typeform documentation is subtly inaccurate
+        if 'landings' in atx.selected_stream_ids:
+            landings_data_rows.append({
+                "landing_id": row['landing_id'],
+                "token": row['token'],
+                "landed_at": row['landed_at'],
+                "submitted_at": row['submitted_at'],
+                "user_agent": row['metadata']['user_agent'],
+                "platform": row['metadata']['platform'],
+                "referer": row['metadata']['referer'],
+                "network_id": row['metadata']['network_id'],
+                "browser": row['metadata']['browser'],
+                "hidden": hidden
+            })
+
+    write_records(atx, 'landings', landings_data_rows)
+
+
 def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
 
@@ -270,6 +280,9 @@ def sync_forms(atx):
         # pull back the form question details
         if 'questions'in atx.selected_stream_ids:
             sync_form_definition(atx, form_id)
+
+        if 'landings' in atx.selected_stream_ids:
+            sync_landings(atx, form_id)
 
         should_sync_forms = False
         for stream_name in FORM_STREAMS:
