@@ -18,7 +18,7 @@ class TypeformStartDateTest(TypeformBaseTest):
         """Instantiate start date according to the desired data set and run the test"""
 
         self.start_date_1 = self.get_properties().get('start_date')
-        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=3)
+        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=12)
 
         self.start_date = self.start_date_1
 
@@ -71,6 +71,8 @@ class TypeformStartDateTest(TypeformBaseTest):
 
         for stream in expected_streams:
             with self.subTest(stream=stream):
+                expected_replication_methods = self.expected_replication_method()
+                expected_replication_method = expected_replication_methods[stream]
 
                 # expected values
                 expected_primary_keys = self.expected_primary_keys()[stream]
@@ -87,7 +89,11 @@ class TypeformStartDateTest(TypeformBaseTest):
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
 
-                self.assertLess(record_count_sync_2, record_count_sync_1)
+                if expected_replication_method == self.INCREMENTAL:
+
+                    self.assertLess(record_count_sync_2, record_count_sync_1)
+                else:
+                    self.assertEqual(record_count_sync_2, record_count_sync_1)
 
                 # Verify by primary key the same records are replicated in the 1st and 2nd syncs
                 self.assertSetEqual(primary_keys_sync_1, primary_keys_sync_2)

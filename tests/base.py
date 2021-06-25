@@ -43,7 +43,7 @@ class TypeformBaseTest(unittest.TestCase):
     def get_properties(self, original: bool = True):
         """Configuration properties required for the tap."""
         return_value = {
-            'start_date' : '2021-04-15T00:00:00Z',
+            'start_date' : '2021-06-15T00:00:00Z',
             'forms': os.getenv('TAP_TYPEFORM_FORMS'),
             'incremental_range': 'daily',
         }

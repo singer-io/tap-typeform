@@ -1,13 +1,11 @@
-import time
 import datetime
 import json
+import time
 
 import pendulum
 import singer
-from singer.bookmarks import write_bookmark, reset_stream
-from backoff import on_exception, expo, constant
+from singer.bookmarks import write_bookmark
 
-from .http import MetricsRateLimitException
 from tap_typeform import schemas
 
 LOGGER = singer.get_logger()
