@@ -16,6 +16,9 @@ LOGGER = singer.get_logger()
 class FormMistmatchError(Exception):
     pass
 
+class NoFormsProvidedError(Exception):
+    pass
+
 
 # Some taps do discovery dynamically where the catalog is read in from a
 #  call to the api but with the typeform structure, we won't do that here
@@ -83,13 +86,22 @@ def sync(atx):
     LOGGER.info('--------------------')
 
 
+def _compare_forms(config_forms, api_forms):
+    return config_forms.difference(api_forms)
+
+
 def validate_form_ids(config):
     """Validate the form ids passed in the config"""
     client = Client(config)
-    forms_from_config = set(config.get('forms').split(','))
-    forms_from_api = {form['id'] for form in client.get_forms()}
+    config_forms = set(config.get('forms').split(','))
 
-    mismatched_forms = forms_from_config.difference(forms_from_api)
+    if config_forms == {''}:
+        LOGGER.fatal("No forms were provided in config")
+        raise NoFormsProvidedError
+
+    api_forms = {form.get('id') for form in client.get_forms()}
+
+    mismatched_forms = _compare_forms(config_forms, api_forms)
 
     if len(mismatched_forms) > 0:
         LOGGER.fatal(f"FormMistmatchError: forms {mismatched_forms} not returned by API")
