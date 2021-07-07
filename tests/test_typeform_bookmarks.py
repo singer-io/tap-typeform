@@ -10,9 +10,6 @@ from base import TypeformBaseTest
 
 class TypeformBookmarks(TypeformBaseTest):
 
-    start_date_1 = "2021-05-01 00:00:00"
-    start_date_2 = "2021-06-28 00:00:00"
-
     @staticmethod
     def name():
         return "tap_tester_typeform_bookmarks"
@@ -45,7 +42,7 @@ class TypeformBookmarks(TypeformBaseTest):
         leads     '2021-04-07T20:09:39+0000',
                   '2021-04-07T20:08:27+0000',
         """
-        timedelta_by_stream = {stream: [10,0,0]  # {stream_name: [days, hours, minutes], ...}
+        timedelta_by_stream = {stream: [16,0,0]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_streams()}
         expected_replication_keys = self.expected_replication_keys()
 
@@ -81,6 +78,9 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
         ### First Sync
         ##########################################################################
+        self.start_date_1 = self.get_properties().get("start_date")
+        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=3)
+
         self.start_date = self.start_date_1
         conn_id = connections.ensure_connection(self, original_properties=False)
 

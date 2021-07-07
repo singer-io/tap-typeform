@@ -7,15 +7,15 @@ from base import TypeformBaseTest
 
 class TypeformStartDateTest(TypeformBaseTest):
 
-    start_date_1 = "2021-06-21 00:00:00"
-    start_date_2 = "2021-06-28 00:00:00"
-
     @staticmethod
     def name():
         return "tap_tester_typeform_start_date_test"
 
     def test_run(self):
         """Instantiate start date according to the desired data set and run the test"""
+
+        self.start_date_1 = self.get_properties().get("start_date")
+        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=3)
 
         self.start_date = self.start_date_1
 
