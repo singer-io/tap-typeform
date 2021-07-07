@@ -9,6 +9,10 @@ from base import TypeformBaseTest
 
 
 class TypeformBookmarks(TypeformBaseTest):
+
+    start_date_1 = "2021-05-01 00:00:00"
+    start_date_2 = "2021-06-28 00:00:00"
+
     @staticmethod
     def name():
         return "tap_tester_typeform_bookmarks"
@@ -41,7 +45,7 @@ class TypeformBookmarks(TypeformBaseTest):
         leads     '2021-04-07T20:09:39+0000',
                   '2021-04-07T20:08:27+0000',
         """
-        timedelta_by_stream = {stream: [1,0,0]  # {stream_name: [days, hours, minutes], ...}
+        timedelta_by_stream = {stream: [10,0,0]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_streams()}
         expected_replication_keys = self.expected_replication_keys()
 
@@ -77,7 +81,7 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
         ### First Sync
         ##########################################################################
-
+        self.start_date = self.start_date_1
         conn_id = connections.ensure_connection(self, original_properties=False)
 
         # Run in check mode
@@ -113,6 +117,16 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
         ### Second Sync
         ##########################################################################
+        self.start_date = self.start_date_2
+        conn_id = connections.ensure_connection(self, original_properties=False)
+
+        # run check mode
+        found_catalogs = self.run_and_verify_check_mode(conn_id)
+
+        # table and field selection
+        test_catalogs_2_all_fields = [catalog for catalog in found_catalogs
+                                      if catalog.get('tap_stream_id') in expected_streams]
+        self.perform_and_verify_table_and_field_selection(conn_id, test_catalogs_2_all_fields, select_all_fields=True)
 
         second_sync_record_count = self.run_and_verify_sync(conn_id)
         second_sync_records = runner.get_records_from_target_output()
