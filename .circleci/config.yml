@@ -18,6 +18,7 @@ jobs:
           name: 'Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            pip install nose
             nosetests tests/unittests
       - run:
           name: 'Integration Tests'
