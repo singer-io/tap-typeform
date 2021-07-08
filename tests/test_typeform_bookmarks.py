@@ -42,7 +42,7 @@ class TypeformBookmarks(TypeformBaseTest):
         leads     '2021-04-07T20:09:39+0000',
                   '2021-04-07T20:08:27+0000',
         """
-        timedelta_by_stream = {stream: [16,0,0]  # {stream_name: [days, hours, minutes], ...}
+        timedelta_by_stream = {stream: [17,0,0]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_streams()}
         expected_replication_keys = self.expected_replication_keys()
 

@@ -14,6 +14,12 @@ jobs:
             pip install -U 'pip<19.2' 'setuptools<51.0.0'
             pip install .[dev]
       - run:
+          when: always
+          name: 'Unit Tests'
+          command: |
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            nosetests tests/unittests
+      - run:
           name: 'Integration Tests'
           command: |
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
