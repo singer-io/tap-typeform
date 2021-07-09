@@ -105,12 +105,19 @@ def sync_form_definition(atx, form_id):
     # we only care about a few fields in the form definition
     # just those that give an analyst a reference to the submissions
     for row in data:
-        definition_data_rows.append({
-            "form_id": form_id,
-            "question_id": row['id'],
-            "title": row['title'],
-            "ref": row['ref']
-            })
+        # Groups aren't questions themselves, but they contain one or
+        # more questions. So extract them and add them to the back of the
+        # fields queue
+        if row['type'] == 'group':
+            sub_questions = row['properties']['fields']
+            data += sub_questions
+        else:
+            definition_data_rows.append({
+                "form_id": form_id,
+                "question_id": row['id'],
+                "title": row['title'],
+                "ref": row['ref']
+                })
 
     write_records(atx, 'questions', definition_data_rows)
 
