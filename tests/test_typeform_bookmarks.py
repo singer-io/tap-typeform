@@ -9,6 +9,7 @@ from base import TypeformBaseTest
 
 
 class TypeformBookmarks(TypeformBaseTest):
+
     @staticmethod
     def name():
         return "tap_tester_typeform_bookmarks"
@@ -70,6 +71,7 @@ class TypeformBookmarks(TypeformBaseTest):
 
     def test_run(self):
         expected_streams =  self.expected_streams()
+
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
@@ -103,14 +105,6 @@ class TypeformBookmarks(TypeformBaseTest):
         for stream, new_state in simulated_states.items():
             new_states['bookmarks'][stream] = new_state
         menagerie.set_state(conn_id, new_states)
-
-        for stream in simulated_states.keys():
-            for state_key, state_value in simulated_states[stream].items():
-                if stream not in new_states['bookmarks']:
-                    new_states['bookmarks'][stream] = {}
-                if state_key not in new_states['bookmarks'][stream]:
-                    new_states['bookmarks'][stream][state_key] = state_value
-
 
         for stream in simulated_states.keys():
             for state_key, state_value in simulated_states[stream].items():
@@ -159,6 +153,8 @@ class TypeformBookmarks(TypeformBaseTest):
                 second_sync_messages = [record.get('data') for record in
                                         second_sync_records.get(stream).get('messages')
                                         if record.get('action') == 'upsert']
+
+                if expected_replication_method == self.INCREMENTAL:
 
 
                     replication_key = next(iter(expected_replication_keys[stream]))
