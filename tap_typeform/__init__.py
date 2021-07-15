@@ -90,15 +90,20 @@ def _compare_forms(config_forms, api_forms):
     return config_forms.difference(api_forms)
 
 
+def _forms_to_list(config, keyword='forms'):
+    """Splits entries into a list and strips out surrounding blank spaces"""
+    return list(map(str.strip, config.get(keyword).split(',')))
+
+
 def validate_form_ids(config):
     """Validate the form ids passed in the config"""
     client = Client(config)
-    config_forms = set(config.get('forms').split(','))
 
-    if config_forms == {''}:
+    if not config.get('forms'):
         LOGGER.fatal("No forms were provided in config")
         raise NoFormsProvidedError
 
+    config_forms = set(_forms_to_list(config))
     api_forms = {form.get('id') for form in client.get_forms()}
 
     mismatched_forms = _compare_forms(config_forms, api_forms)
