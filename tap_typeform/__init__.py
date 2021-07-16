@@ -4,6 +4,7 @@ from singer import utils
 from singer.catalog import Catalog, metadata_module as metadata
 from tap_typeform import streams
 from tap_typeform.context import Context
+from tap_typeform.http import Client
 from tap_typeform import schemas
 
 REQUIRED_CONFIG_KEYS = ["token", "forms", "incremental_range"]
@@ -12,6 +13,11 @@ LOGGER = singer.get_logger()
 
 #def check_authorization(atx):
 #    atx.client.get('/settings')
+class FormMistmatchError(Exception):
+    pass
+
+class NoFormsProvidedError(Exception):
+    pass
 
 
 # Some taps do discovery dynamically where the catalog is read in from a
@@ -80,11 +86,39 @@ def sync(atx):
     LOGGER.info('--------------------')
 
 
+def _compare_forms(config_forms, api_forms):
+    return config_forms.difference(api_forms)
+
+
+def _forms_to_list(config, keyword='forms'):
+    """Splits entries into a list and strips out surrounding blank spaces"""
+    return list(map(str.strip, config.get(keyword).split(',')))
+
+
+def validate_form_ids(config):
+    """Validate the form ids passed in the config"""
+    client = Client(config)
+
+    if not config.get('forms'):
+        LOGGER.fatal("No forms were provided in config")
+        raise NoFormsProvidedError
+
+    config_forms = set(_forms_to_list(config))
+    api_forms = {form.get('id') for form in client.get_forms()}
+
+    mismatched_forms = _compare_forms(config_forms, api_forms)
+
+    if len(mismatched_forms) > 0:
+        LOGGER.fatal(f"FormMistmatchError: forms {mismatched_forms} not returned by API")
+        raise FormMistmatchError
+
+
 @utils.handle_top_exception(LOGGER)
 def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     atx = Context(args.config, args.state)
     if args.discover:
+        validate_form_ids(args.config)
         # the schema is static from file so we don't need to pass in atx for connection info.
         catalog = discover()
         catalog.dump()
