@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+  * Add the Forms stream [#29](https://github.com/singer-io/tap-typeform/pull/29)
+  * Add integration tests [#32](https://github.com/singer-io/tap-typeform/pull/32)
+  * Add unit test for exception handling [#33](https://github.com/singer-io/tap-typeform/pull/33)
+  * Add config validation to ensure only valid forms are input by the user [#34](https://github.com/singer-io/tap-typeform/pull/34)
+  * Fix a bug in the bookmarks test [#36](https://github.com/singer-io/tap-typeform/pull/36)
+
 ## 1.2.0
   * Add logic to handle empty forms
 
