@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.2
+  * This version actually reverts the code back to `v1.2.0` [#39](https://github.com/singer-io/tap-typeform/pull/39)
+
 ## 1.3.1
   * Revert back to `v1.2.0`
 
