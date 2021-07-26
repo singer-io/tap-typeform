@@ -118,6 +118,7 @@ class TypeformBookmarks(TypeformBaseTest):
         ### Second Sync
         ##########################################################################
         self.start_date = self.start_date_2
+        conn_id = connections.ensure_connection(self, original_properties=False)
 
         # run check mode
         found_catalogs = self.run_and_verify_check_mode(conn_id)
