@@ -10,19 +10,12 @@ setup(
     url="http://singer.io",
     classifiers=["Programming Language :: Python :: 3 :: Only"],
     install_requires=[
-        "singer-python==5.10.0",
+        "singer-python==5.4.0",
         "pendulum",
         "ratelimit",
-        "backoff",
-        "requests",
+        "backoff==1.3.2",
+        "requests==2.20.0",
     ],
-    extras_require={
-        'dev': [
-            'pylint',
-            'ipdb',
-            'nose',
-        ]
-    },
     entry_points="""
     [console_scripts]
     tap-typeform=tap_typeform:main

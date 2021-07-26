@@ -94,11 +94,11 @@ ENV/
 
 # Custom stuff
 env.sh
-*config.json
+config.json
 .autoenv.zsh
 
 rsa-key
 tags
 singer-check-tap-data
-state*.json
-catalog*.json
+state.json
+catalog.json

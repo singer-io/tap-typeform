@@ -1,12 +1,14 @@
+import time
 import datetime
 import json
-import time
 
 import pendulum
 import singer
-from singer.bookmarks import write_bookmark
+from singer.bookmarks import write_bookmark, reset_stream
+from ratelimit import limits, sleep_and_retry, RateLimitException
+from backoff import on_exception, expo, constant
 
-from tap_typeform import schemas
+from .http import MetricsRateLimitException
 
 LOGGER = singer.get_logger()
 
@@ -64,9 +66,17 @@ def select_fields(mdata, obj):
             new_obj[key] = value
     return new_obj
 
+@on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
+@on_exception(expo, RateLimitException, max_tries=5)
+@sleep_and_retry
+@limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_form_definition(atx, form_id):
-    return atx.client.get_form_definition(form_id)
+    return atx.client.get(form_id)
 
+@on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
+@on_exception(expo, RateLimitException, max_tries=5)
+@sleep_and_retry
+@limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_form(atx, form_id, start_date, end_date):
     LOGGER.info('Forms query - form: {} start_date: {} end_date: {} '.format(
         form_id,
@@ -76,15 +86,7 @@ def get_form(atx, form_id, start_date, end_date):
     # the api doesn't have a means of paging through responses if the number is greater than 1000,
     # so since the order of data retrieved is by submitted_at we have
     # to take the last submitted_at date and use it to cycle through
-    return atx.client.get_form_responses(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
-
-def get_forms(atx):
-    LOGGER.info('All forms query')
-    return atx.client.get_forms()
-
-def get_landings(atx, form_id):
-    LOGGER.info('All landings query')
-    return atx.client.get_form_responses(form_id)
+    return atx.client.get(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
 
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
@@ -131,120 +133,12 @@ def sync_form(atx, form_id, start_date, end_date):
             else:
                 time.sleep(METRIC_JOB_POLL_SLEEP)
 
+    landings_data_rows = []
     answers_data_rows = []
 
     max_submitted_dt = ''
 
     for row in data:
-
-        max_submitted_dt = row['submitted_at']
-
-        if row.get('answers') and 'answers' in atx.selected_stream_ids:
-            for answer in row['answers']:
-                data_type = answer.get('type')
-
-                if data_type in ['choice', 'choices', 'payment']:
-                    answer_value = json.dumps(answer.get(data_type))
-                elif data_type in ['number', 'boolean']:
-                    answer_value = str(answer.get(data_type))
-                else:
-                    answer_value = answer.get(data_type)
-
-                answers_data_rows.append({
-                    "landing_id": row.get('landing_id'),
-                    "question_id": answer.get('field',{}).get('id'),
-                    "type": answer.get('field',{}).get('type'),
-                    "ref": answer.get('field',{}).get('ref'),
-                    "data_type": data_type,
-                    "landed_at": row.get("landed_at"),
-                    "answer": answer_value
-                })
-
-    if 'answers' in atx.selected_stream_ids:
-        write_records(atx, 'answers', answers_data_rows)
-
-    return [response['total_items'], max_submitted_dt]
-
-
-def write_forms_state(atx, stream_name, form_id, value):
-    if isinstance(value, dict):
-        write_bookmark(atx.state, stream_name, form_id, value)
-    else:
-        write_bookmark(atx.state, stream_name, form_id, value.to_datetime_string())
-    atx.write_state()
-
-
-def sync_latest_forms(atx):
-    replication_key = 'last_updated_at'
-    tap_id = 'forms'
-    with singer.metrics.job_timer('all forms'):
-        start = time.monotonic()
-        while True:
-            if (time.monotonic() - start) >= MAX_METRIC_JOB_TIME:
-                raise Exception('Metric job timeout ({} secs)'.format(
-                    MAX_METRIC_JOB_TIME))
-            forms = get_forms(atx)
-            if forms != '':
-                break
-            else:
-                time.sleep(METRIC_JOB_POLL_SLEEP)
-
-    # Using an older version of singer
-    bookmark_date = singer.get_bookmark(atx.state, tap_id, replication_key) or atx.config['start_date']
-    bookmark_datetime = singer.utils.strptime_to_utc(bookmark_date)
-    max_datetime = bookmark_datetime
-
-    records = []
-    for form in forms:
-        record_datetime = singer.utils.strptime_to_utc(form[replication_key])
-        if record_datetime >= bookmark_datetime:
-            records.append(form)
-            max_datetime = max(record_datetime, max_datetime)
-
-    write_records(atx, tap_id, records)
-    bookmark_date = singer.utils.strftime(max_datetime)
-    state = singer.write_bookmark(atx.state,
-                                  tap_id,
-                                  replication_key,
-                                  bookmark_date)
-
-    return state
-
-
-def is_incremental(stream):
-    return schemas.REPLICATION_METHODS[stream].get("replication_method") == "INCREMENTAL"
-
-
-def get_replication_key(stream):
-    if is_incremental(stream):
-        return schemas.REPLICATION_METHODS[stream].get("replication_keys")[0]
-    return None
-
-
-def construct_bookmark(stream_name, value):
-    replication_key = get_replication_key(stream_name)
-    if replication_key:
-        bookmark_value = {replication_key: value.to_datetime_string()}
-    else:
-        bookmark_value = value
-
-    return bookmark_value
-
-def get_bookmark_value(state, stream_name, key, default=None):
-    # singer.get_bookmark(atx.state, stream_name, form_id, default=s_d)
-    bookmark = singer.get_bookmark(state, stream_name, key, default=default)
-
-    if isinstance(bookmark, dict):
-        return list(bookmark.values())[0]
-
-    return bookmark
-
-
-def sync_landings(atx, form_id):
-    response = get_landings(atx, form_id)
-    landings_data_rows = []
-
-    for row in response['items']:
         if 'hidden' not in row:
             hidden = ''
         else:
@@ -266,23 +160,51 @@ def sync_landings(atx, form_id):
                 "hidden": hidden
             })
 
-    write_records(atx, 'landings', landings_data_rows)
+        max_submitted_dt = row['submitted_at']
 
+        if row.get('answers') and 'answers' in atx.selected_stream_ids:
+            for answer in row['answers']:
+                data_type = answer.get('type')
+
+                if data_type in ['choice', 'choices', 'payment']:
+                    answer_value = json.dumps(answer.get(data_type))
+                elif data_type in ['number', 'boolean']:
+                    answer_value = str(answer.get(data_type))
+                else:
+                    answer_value = answer.get(data_type)
+
+                answers_data_rows.append({
+                    "landing_id": row.get('landing_id'),
+                    "question_id": answer.get('field',{}).get('id'),
+                    "type": answer.get('field',{}).get('type'),
+                    "ref": answer.get('field',{}).get('ref'),
+                    "data_type": data_type,
+                    "answer": answer_value
+                })
+
+    if 'landings' in atx.selected_stream_ids:
+        write_records(atx, 'landings', landings_data_rows)
+    if 'answers' in atx.selected_stream_ids:
+        write_records(atx, 'answers', answers_data_rows)
+
+    return [response['total_items'], max_submitted_dt]
+
+
+def write_forms_state(atx, form, date_to_resume):
+    write_bookmark(atx.state, form, 'date_to_resume', date_to_resume.to_datetime_string())
+    atx.write_state()
 
 def sync_forms(atx):
     incremental_range = atx.config.get('incremental_range')
 
     for form_id in atx.config.get('forms').split(','):
-        # bookmark = atx.state.get('bookmarks', {}) atx.stream_name, {})
+        bookmark = atx.state.get('bookmarks', {}).get(form_id, {})
 
         LOGGER.info('form: {} '.format(form_id))
 
         # pull back the form question details
         if 'questions'in atx.selected_stream_ids:
             sync_form_definition(atx, form_id)
-
-        if 'landings' in atx.selected_stream_ids:
-            sync_landings(atx, form_id)
 
         should_sync_forms = False
         for stream_name in FORM_STREAMS:
@@ -318,7 +240,7 @@ def sync_forms(atx):
         # if the state file has a date_to_resume, we use it as it is.
         # if it doesn't exist, we overwrite by start date
         s_d = start_date.strftime("%Y-%m-%d %H:%M:%S")
-        last_date = pendulum.parse(get_bookmark_value(atx.state, stream_name, form_id, default=s_d))
+        last_date = pendulum.parse(bookmark.get('date_to_resume', s_d))
         LOGGER.info('last_date: {} '.format(last_date))
 
 
@@ -342,19 +264,16 @@ def sync_forms(atx):
             # but this also might cause some minor loss of data.
             # there's no ideal scenario here since the API has no other way than using
             # time ranges to step through data.
-            bookmark_value = construct_bookmark(stream_name, next_date)
-
             while responses == 1000:
                 interim_next_date = pendulum.parse(max_submitted_at) + datetime.timedelta(seconds=1)
                 ut_interim_next_date = int(interim_next_date.timestamp())
-                bookmark_value = construct_bookmark(stream_name, interim_next_date)
-                write_forms_state(atx, stream_name, form_id, bookmark_value)
+                write_forms_state(atx, form_id, interim_next_date)
                 [responses, max_submitted_at] = sync_form(atx, form_id, ut_interim_next_date, ut_next_date)
 
             # if the prior sync is successful it will write the date_to_resume bookmark
-            write_forms_state(atx, stream_name, form_id, bookmark_value)
+            write_forms_state(atx, form_id, next_date)
             current_date = next_date
 
-    if 'forms'in atx.selected_stream_ids:
-        state = sync_latest_forms(atx)
-        singer.write_state(state)
+        reset_stream(atx.state, 'questions')
+        reset_stream(atx.state, 'landings')
+        reset_stream(atx.state, 'answers')
