@@ -5,8 +5,10 @@ import json
 import pendulum
 import singer
 from singer.bookmarks import write_bookmark, reset_stream
+from ratelimit import limits, sleep_and_retry, RateLimitException
 from backoff import on_exception, expo, constant
 
+from .http import MetricsRateLimitException
 
 LOGGER = singer.get_logger()
 
@@ -64,9 +66,17 @@ def select_fields(mdata, obj):
             new_obj[key] = value
     return new_obj
 
+@on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
+@on_exception(expo, RateLimitException, max_tries=5)
+@sleep_and_retry
+@limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_form_definition(atx, form_id):
     return atx.client.get_form_definition(form_id)
 
+@on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
+@on_exception(expo, RateLimitException, max_tries=5)
+@sleep_and_retry
+@limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_form(atx, form_id, start_date, end_date):
     LOGGER.info('Forms query - form: {} start_date: {} end_date: {} '.format(
         form_id,
@@ -78,6 +88,10 @@ def get_form(atx, form_id, start_date, end_date):
     # to take the last submitted_at date and use it to cycle through
     return atx.client.get_form_responses(form_id, params={'since': start_date, 'until': end_date, 'page_size': 1000})
 
+@on_exception(constant, MetricsRateLimitException, max_tries=5, interval=60)
+@on_exception(expo, RateLimitException, max_tries=5)
+@sleep_and_retry
+@limits(calls=1, period=6) # 5 seconds needed to be padded by 1 second to work
 def get_forms(atx):
     LOGGER.info('All forms query')
     return atx.client.get_forms()
@@ -313,6 +327,6 @@ def sync_forms(atx):
     if 'forms'in atx.selected_stream_ids:
         state = sync_latest_forms(atx)
 
-        singer.write_state(state)
+    singer.write_state(state)
 
-        reset_stream(atx.state, 'forms')
+    reset_stream(atx.state, 'forms')
