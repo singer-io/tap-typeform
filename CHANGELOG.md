@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.1
+  * Revert back to `v1.2.0`
+
 ## 1.3.0
   * Add the Forms stream [#29](https://github.com/singer-io/tap-typeform/pull/29)
   * Add integration tests [#32](https://github.com/singer-io/tap-typeform/pull/32)
