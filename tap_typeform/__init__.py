@@ -7,9 +7,9 @@ import json
 import singer
 from singer import utils
 from singer.catalog import Catalog, CatalogEntry, Schema
-from tap_typeform import streams
-from tap_typeform.context import Context
-from tap_typeform import schemas
+from . import streams
+from .context import Context
+from . import schemas
 
 REQUIRED_CONFIG_KEYS = ["token", "forms", "incremental_range"]
 
