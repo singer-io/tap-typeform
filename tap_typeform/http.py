@@ -106,7 +106,8 @@ class Client(object):
     # Max page size for forms API is 200
     def get_forms(self, page_size=200):
         url = self.build_url(endpoint='forms')
-        return self._get_forms('get', url, page_size)
+        with singer.metrics.http_request_timer(endpoint=url):
+            return self._get_forms('get', url, page_size)
 
     def _get_forms(self, method, url, page_size):
         page = 1
@@ -128,12 +129,14 @@ class Client(object):
     def get_form_definition(self, form_id, **kwargs):
         endpoint = f"forms/{form_id}"
         url = self.build_url(endpoint=endpoint)
-        return self.request('get', url, **kwargs)
+        with singer.metrics.http_request_timer(endpoint=url):
+            return self.request('get', url, **kwargs)
 
     def get_form_responses(self, form_id, **kwargs):
         endpoint = f"forms/{form_id}/responses"
         url = self.build_url(endpoint)
-        return self.request('get', url, **kwargs)
+        with singer.metrics.http_request_timer(endpoint=url):
+            return self.request('get', url, **kwargs)
 
 
 def raise_for_error(response):
