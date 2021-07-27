@@ -130,13 +130,19 @@ class Client(object):
         endpoint = f"forms/{form_id}"
         url = self.build_url(endpoint=endpoint)
         with singer.metrics.http_request_timer(endpoint=url):
-            return self.request('get', url, **kwargs)
+            try:
+                return self.request('get', url, **kwargs)
+            except TypeformForbiddenError as err:
+                raise RuntimeError("Maybe add the Forms:Read scope to your token") from err
 
     def get_form_responses(self, form_id, **kwargs):
         endpoint = f"forms/{form_id}/responses"
         url = self.build_url(endpoint)
         with singer.metrics.http_request_timer(endpoint=url):
-            return self.request('get', url, **kwargs)
+            try:
+                return self.request('get', url, **kwargs)
+            except TypeformForbiddenError as err:
+                raise RuntimeError("Maybe add the Responses:Read scope to your token") from err
 
 
 def raise_for_error(response):
