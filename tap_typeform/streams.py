@@ -3,6 +3,7 @@ import json
 import time
 
 import pendulum
+import pytz
 import singer
 from singer.bookmarks import write_bookmark
 
@@ -294,7 +295,7 @@ def sync_forms(atx):
         # if there's no default date and it gets set to now, then start_date will have to be
         #   set to the prior business day/hour before we can use it.
 
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(pytz.utc)
         if incremental_range == "daily":
             s_d = now.replace(hour=0, minute=0, second=0, microsecond=0)
             start_date = pendulum.parse(atx.config.get('start_date', s_d + datetime.timedelta(days=-1, hours=0)))
@@ -326,6 +327,8 @@ def sync_forms(atx):
         # makes better sense once we go into the loop
         current_date = last_date
 
+        # this is where the tap is setting next_date to the future due 
+        #   to the greater than equal check
         while current_date <= end_date:
             if incremental_range == "daily":
                 next_date = current_date + datetime.timedelta(days=1, hours=0)
@@ -350,6 +353,10 @@ def sync_forms(atx):
                 bookmark_value = construct_bookmark(stream_name, interim_next_date)
                 write_forms_state(atx, stream_name, form_id, bookmark_value)
                 [responses, max_submitted_at] = sync_form(atx, form_id, ut_interim_next_date, ut_next_date)
+
+            # check if next_date is in the future
+            now_parsed = pendulum.parse(now.isoformat())
+            next_date = now_parsed if next_date > now else next_date
 
             # if the prior sync is successful it will write the date_to_resume bookmark
             write_forms_state(atx, stream_name, form_id, bookmark_value)
