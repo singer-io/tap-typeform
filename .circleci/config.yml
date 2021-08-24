@@ -13,13 +13,13 @@ jobs:
             source /usr/local/share/virtualenvs/tap-typeform/bin/activate
             pip install -U 'pip<19.2' 'setuptools<51.0.0'
             pip install .[dev]
-      - run:
-          when: always
-          name: 'Unit Tests'
-          command: |
-            source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            pip install nose
-            nosetests tests/unittests
+      # - run:
+      #     when: always
+      #     name: 'Unit Tests'
+      #     command: |
+      #       source /usr/local/share/virtualenvs/tap-typeform/bin/activate
+      #       pip install nose
+      #       nosetests tests/unittests
       - run:
           name: 'Integration Tests'
           command: |
