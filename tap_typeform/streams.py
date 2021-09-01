@@ -356,6 +356,11 @@ def sync_forms(atx):
             bookmark_value = construct_bookmark(stream_name, parsed_max_submitted_at)
             write_forms_state(atx, stream_name, form_id, bookmark_value)
 
+        # check if bookmark_value is in the past
+        now_parsed = pendulum.parse(now.isoformat())
+        updated_bookmark_value = now_parsed if parsed_max_submitted_at < now_parsed else bookmark_value
+        bookmark_value = bookmark_value = construct_bookmark(stream_name, updated_bookmark_value)
+
         # if the prior sync is successful it will write the date_to_resume bookmark
         write_forms_state(atx, stream_name, form_id, bookmark_value)
 
