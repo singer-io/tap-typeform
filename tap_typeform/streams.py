@@ -321,7 +321,7 @@ def sync_forms(atx):
         # if there's no default date and it gets set to now
         now = datetime.datetime.now(pytz.utc)
         s_d = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        start_date = pendulum.parse(atx.config.get('start_date', s_d))
+        start_date = pendulum.parse(atx.config.get('start_date', s_d.isoformat()))
 
         # if the state file has a date_to_resume, we use it as it is.
         # if it doesn't exist, we overwrite by start date
@@ -358,7 +358,7 @@ def sync_forms(atx):
 
         # check if bookmark is in the past
         now_parsed = pendulum.parse(now.isoformat())
-        updated_bookmark_value = now_parsed if parsed_max_submitted_at < now_parsed else parsed_max_submitted_at
+        updated_bookmark_value = max(parsed_max_submitted_at, now_parsed)
         bookmark_value = construct_bookmark(stream_name, updated_bookmark_value)
 
         # if the prior sync is successful it will write the date_to_resume bookmark
