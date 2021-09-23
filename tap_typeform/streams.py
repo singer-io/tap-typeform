@@ -162,7 +162,7 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
 
     answers_data_rows = []
 
-    max_submitted_dt = ''
+    max_submitted_dt = datetime.datetime.fromtimestamp(start_date).isoformat()
     max_token = ''
 
     for row in data:
