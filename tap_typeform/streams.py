@@ -1,4 +1,3 @@
-import datetime
 import json
 import time
 
@@ -162,7 +161,7 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
 
     answers_data_rows = []
 
-    max_submitted_dt = datetime.datetime.fromtimestamp(start_date).isoformat()
+    max_submitted_dt = pendulum.from_timestamp(start_date).isoformat()
     max_token = ''
 
     for row in data:
@@ -319,8 +318,8 @@ def sync_forms(atx):
 
         # start_date is defaulted in the config file 2018-01-01
         # if there's no default date and it gets set to now
-        now = datetime.datetime.now(pytz.utc)
-        s_d = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        now_parsed = pendulum.now(pytz.utc)
+        s_d = now_parsed.replace(hour=0, minute=0, second=0, microsecond=0)
         start_date = pendulum.parse(atx.config.get('start_date', s_d.isoformat()))
 
         # if the state file has a date_to_resume, we use it as it is.
@@ -357,7 +356,6 @@ def sync_forms(atx):
             write_forms_state(atx, stream_name, form_id, bookmark_value)
 
         # check if bookmark is in the past
-        now_parsed = pendulum.parse(now.isoformat())
         updated_bookmark_value = max(parsed_max_submitted_at, now_parsed)
         bookmark_value = construct_bookmark(stream_name, updated_bookmark_value)
 
