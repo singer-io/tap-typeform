@@ -174,8 +174,8 @@ class TypeformBookmarks(TypeformBaseTest):
                             # Verify the second sync sets a bookmark of the expected form
                             self.assertIsNotNone(second_bookmark_key_value)
 
-                            # Verify the second sync bookmark is Equal to the first sync bookmark
-                            self.assertEqual(second_bookmark_value, first_bookmark_value) # assumes no changes to data during test
+                            # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
+                            self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
 
 
                             for record in second_sync_messages:
@@ -218,8 +218,8 @@ class TypeformBookmarks(TypeformBaseTest):
                     # Verify the second sync sets a bookmark of the expected form
                     self.assertIsNotNone(second_bookmark_key_value)
 
-                    # Verify the second sync bookmark is Equal to the first sync bookmark
-                    self.assertEqual(second_bookmark_value, first_bookmark_value) # assumes no changes to data during test
+                    # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
+                    self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
 
 
                     for record in second_sync_messages:
