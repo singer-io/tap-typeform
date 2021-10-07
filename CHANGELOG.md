@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+  * Update the tap to make less requests and ask for bigger batches of data per response [#44](https://github.com/singer-io/tap-typeform/pull/44)
+  * Fix bookmarking bug. Bookmarks will never be set in the future now [#43](https://github.com/singer-io/tap-typeform/pull/43)
+
 ## 1.3.2
   * This version actually reverts the code back to `v1.2.0` [#39](https://github.com/singer-io/tap-typeform/pull/39)
 
