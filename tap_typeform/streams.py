@@ -113,7 +113,7 @@ def get_forms(atx):
 def get_landings(atx, form_id, token=None, next_page=False):
     LOGGER.info('All landings query')
 
-    sort = None if next_page else 'submitted_at,asc'
+    sort = None if next_page else 'landed_at,asc'
 
     return atx.client.get_form_responses(
         form_id,
