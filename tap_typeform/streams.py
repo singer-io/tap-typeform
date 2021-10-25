@@ -110,10 +110,6 @@ def get_forms(atx):
     LOGGER.info('All forms query')
     return atx.client.get_forms()
 
-def get_landings(atx, form_id):
-    LOGGER.info('All landings query')
-    return atx.client.get_form_responses(form_id)
-
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
         start = time.monotonic()
@@ -164,6 +160,8 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
     max_submitted_dt = pendulum.from_timestamp(start_date).isoformat()
     max_token = ''
 
+    landings_data_rows = []
+
     for row in data:
 
         max_submitted_dt = row['submitted_at']
@@ -190,8 +188,29 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
                     "answer": answer_value
                 })
 
-    if 'answers' in atx.selected_stream_ids:
-        write_records(atx, 'answers', answers_data_rows)
+        if 'answers' in atx.selected_stream_ids:
+            write_records(atx, 'answers', answers_data_rows)
+
+        if 'landings' in atx.selected_stream_ids:
+            if 'hidden' not in row:
+                hidden = ''
+            else:
+                hidden = json.dumps(row['hidden'])
+            landings_data_rows.append({
+                "landing_id": row['landing_id'],
+                "token": row['token'],
+                "landed_at": row['landed_at'],
+                "submitted_at": row['submitted_at'],
+                "user_agent": row['metadata']['user_agent'],
+                "platform": row['metadata']['platform'],
+                "referer": row['metadata']['referer'],
+                "network_id": row['metadata']['network_id'],
+                "browser": row['metadata']['browser'],
+                "hidden": hidden
+            })
+
+    if 'landings' in atx.selected_stream_ids:
+        write_records(atx, 'landings', landings_data_rows)
 
     return response.get('page_count', 0), max_submitted_dt, max_token
 
@@ -269,36 +288,6 @@ def get_bookmark_value(state, stream_name, key, default=None):
 
     return bookmark
 
-
-def sync_landings(atx, form_id):
-    response = get_landings(atx, form_id)
-    landings_data_rows = []
-
-    for row in response['items']:
-        if 'hidden' not in row:
-            hidden = ''
-        else:
-            hidden = json.dumps(row['hidden'])
-
-        # the schema here reflects what we saw through testing
-        # the typeform documentation is subtly inaccurate
-        if 'landings' in atx.selected_stream_ids:
-            landings_data_rows.append({
-                "landing_id": row['landing_id'],
-                "token": row['token'],
-                "landed_at": row['landed_at'],
-                "submitted_at": row['submitted_at'],
-                "user_agent": row['metadata']['user_agent'],
-                "platform": row['metadata']['platform'],
-                "referer": row['metadata']['referer'],
-                "network_id": row['metadata']['network_id'],
-                "browser": row['metadata']['browser'],
-                "hidden": hidden
-            })
-
-    write_records(atx, 'landings', landings_data_rows)
-
-
 def sync_forms(atx):
     for form_id in atx.config.get('forms').split(','):
         LOGGER.info('form: {} '.format(form_id))
@@ -306,9 +295,6 @@ def sync_forms(atx):
         # pull back the form question details
         if 'questions' in atx.selected_stream_ids:
             sync_form_definition(atx, form_id)
-
-        if 'landings' in atx.selected_stream_ids:
-            sync_landings(atx, form_id)
 
         should_sync_forms = False
         for stream_name in FORM_STREAMS:
