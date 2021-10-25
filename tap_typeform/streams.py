@@ -110,18 +110,28 @@ def get_forms(atx):
     LOGGER.info('All forms query')
     return atx.client.get_forms()
 
-def get_landings(atx, form_id, token=None, next_page=False):
+def get_landings(atx, form_id):
     LOGGER.info('All landings query')
 
-    sort = None if next_page else 'landed_at,asc'
+    page_count = 2
+    sort = 'landed_at,asc'
+    token = None
 
-    return atx.client.get_form_responses(
-        form_id,
-        params={
-            'page_size': MAX_RESPONSES_PAGE_SIZE,
-            'sort': sort,
-            'after': token,
-        })
+    while page_count > 1:
+        response = atx.client.get_form_responses(
+            form_id,
+            params={
+                'page_size': MAX_RESPONSES_PAGE_SIZE,
+                'sort': sort,
+                'after': token,
+            })
+
+        page_count = response.get('page_count', 1)
+        sort = None
+        token = response.get('items', [])[-1].get('token')
+
+        yield from response.get('items', [])
+
 
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
@@ -281,19 +291,10 @@ def get_bookmark_value(state, stream_name, key, default=None):
 
 def sync_landings(atx, form_id):
     response = get_landings(atx, form_id)
-    data = response.get('items', [])
-
-    page_count = response.get('page_count', 1)
-    token = data[-1].get('token')
-
-    while page_count > 1:
-        response = get_landings(atx, form_id, token, next_page=True)
-        page_count = response.get('page_count', 1)
-        data.extend(response.get('items'), [])
 
     landings_data_rows = []
 
-    for row in data:
+    for row in response:
         if 'hidden' not in row:
             hidden = ''
         else:
