@@ -155,11 +155,10 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
             else:
                 time.sleep(METRIC_JOB_POLL_SLEEP)
 
-    answers_data_rows = []
-
     max_submitted_dt = pendulum.from_timestamp(start_date).isoformat()
     max_token = ''
 
+    answers_data_rows = []
     landings_data_rows = []
 
     for row in data:
@@ -188,9 +187,6 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
                     "answer": answer_value
                 })
 
-        if 'answers' in atx.selected_stream_ids:
-            write_records(atx, 'answers', answers_data_rows)
-
         if 'landings' in atx.selected_stream_ids:
             if 'hidden' not in row:
                 hidden = ''
@@ -209,6 +205,8 @@ def sync_form(atx, form_id, start_date, token=None, next_page=False):
                 "hidden": hidden
             })
 
+    if 'answers' in atx.selected_stream_ids:
+        write_records(atx, 'answers', answers_data_rows)
     if 'landings' in atx.selected_stream_ids:
         write_records(atx, 'landings', landings_data_rows)
 
