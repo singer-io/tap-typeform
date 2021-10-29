@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.2
+  * Fixes IndexError in `landings` pagination [#51](https://github.com/singer-io/tap-typeform/pull/51)
+
 ## 1.4.1
   * Adds pagination to the `landings` stream [#48](https://github.com/singer-io/tap-typeform/pull/48)
 
