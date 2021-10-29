@@ -128,7 +128,10 @@ def get_landings(atx, form_id):
 
         page_count = response.get('page_count', 1)
         sort = None
-        token = response.get('items', [])[-1].get('token')
+        items = response.get('items', [])
+        if items:
+            token = items[-1].get('token')
+
 
         yield from response.get('items', [])
 
