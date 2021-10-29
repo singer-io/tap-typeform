@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+  * Adds pagination to the `landings` stream [#48](https://github.com/singer-io/tap-typeform/pull/48)
+
 ## 1.4.0
   * Update the tap to make less requests and ask for bigger batches of data per response [#44](https://github.com/singer-io/tap-typeform/pull/44)
   * Fix bookmarking bug. Bookmarks will never be set in the future now [#43](https://github.com/singer-io/tap-typeform/pull/43)
