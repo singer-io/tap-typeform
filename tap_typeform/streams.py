@@ -112,7 +112,26 @@ def get_forms(atx):
 
 def get_landings(atx, form_id):
     LOGGER.info('All landings query')
-    return atx.client.get_form_responses(form_id)
+
+    page_count = 2
+    sort = 'landed_at,asc'
+    token = None
+
+    while page_count > 1:
+        response = atx.client.get_form_responses(
+            form_id,
+            params={
+                'page_size': MAX_RESPONSES_PAGE_SIZE,
+                'sort': sort,
+                'after': token,
+            })
+
+        page_count = response.get('page_count', 1)
+        sort = None
+        token = response.get('items', [])[-1].get('token')
+
+        yield from response.get('items', [])
+
 
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
@@ -272,9 +291,10 @@ def get_bookmark_value(state, stream_name, key, default=None):
 
 def sync_landings(atx, form_id):
     response = get_landings(atx, form_id)
+
     landings_data_rows = []
 
-    for row in response['items']:
+    for row in response:
         if 'hidden' not in row:
             hidden = ''
         else:
@@ -336,7 +356,7 @@ def sync_forms(atx):
 
         ut_current_date = int(current_date.timestamp())
         LOGGER.info('ut_current_date: {} '.format(ut_current_date))
-        
+
         page_count, max_submitted_at, max_token = sync_form(atx, form_id, ut_current_date)
 
         parsed_max_submitted_at = pendulum.parse(max_submitted_at)
