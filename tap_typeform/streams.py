@@ -133,7 +133,7 @@ def get_landings(atx, form_id):
             token = items[-1].get('token')
 
 
-        yield from response.get('items', [])
+        yield from items
 
 
 def sync_form_definition(atx, form_id):
