@@ -76,7 +76,7 @@ class Client(object):
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,
-                          (ChunkedEncodingError),
+                          (requests.exceptions.ChunkedEncodingError),
                           max_tries=3,
                           factor=2)
     @backoff.on_exception(backoff.expo,
