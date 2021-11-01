@@ -2,6 +2,8 @@ import requests
 import backoff
 import singer
 
+from requests.exceptions import ChunkedEncodingError
+
 LOGGER = singer.get_logger()
 
 
@@ -76,11 +78,8 @@ class Client(object):
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,
-                          (TypeformInternalError, TypeformNotAvailableError),
-                          max_tries=3,
-                          factor=2)
-    @backoff.on_exception(backoff.expo,
-                          TypeformTooManyError,
+                          (TypeformInternalError, TypeformNotAvailableError,
+                           TypeformTooManyError, ChunkedEncodingError),
                           max_tries=3,
                           factor=2)
     def request(self, method, url, params=None, **kwargs):
