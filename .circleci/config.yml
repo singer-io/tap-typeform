@@ -18,8 +18,9 @@ jobs:
           name: 'Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            pip install nose
-            nosetests tests/unittests
+            pip install nose coverage
+            nosetests --with-coverage --cover-erase --cover-package=tap_typeform --cover-html-dir=htmlcov tests/unittests
+            coverage html
       - run:
           name: 'Integration Tests'
           command: |
