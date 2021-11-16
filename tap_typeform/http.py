@@ -87,10 +87,14 @@ class Client(object):
 
     @backoff.on_exception(backoff.expo,
                           (TypeformInternalError, TypeformNotAvailableError,
-                           TypeformTooManyError, ChunkedEncodingError, Timeout), # Backoff for request timeout
+                           TypeformTooManyError, ChunkedEncodingError),
                           max_tries=3,
                           factor=2)
-    def request(self, method, url, params=None, **kwargs):
+    @backoff.on_exception(backoff.expo,
+                            Timeout,
+                          max_tries=5,
+                          factor=2)
+    def request(self, method, url, params=None, req=300, **kwargs):
         # note that typeform response api doesn't return limit headers
 
         if 'headers' not in kwargs:
@@ -100,7 +104,7 @@ class Client(object):
 
         request = requests.Request(method, url, headers=kwargs['headers'], params=params)
 
-        response = self.session.send(request.prepare(), timeout=self.request_timeout)# Pass request timeout
+        response = self.session.send(request.prepare(), timeout=req)# Pass request timeout
 
         if response.status_code != 200:
             raise_for_error(response)
