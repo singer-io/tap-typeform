@@ -2,7 +2,7 @@ import requests
 import backoff
 import singer
 
-from requests.exceptions import ChunkedEncodingError, Timeout
+from requests.exceptions import ChunkedEncodingError, Timeout, ConnectionError
 
 LOGGER = singer.get_logger()
 
@@ -85,13 +85,13 @@ class Client(object):
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,
+                          (Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
+                          max_tries=5,
+                          factor=2)
+    @backoff.on_exception(backoff.expo,
                           (TypeformInternalError, TypeformNotAvailableError,
                            TypeformTooManyError, ChunkedEncodingError),
                           max_tries=3,
-                          factor=2)
-    @backoff.on_exception(backoff.expo,
-                            Timeout,
-                          max_tries=5,
                           factor=2)
     def request(self, method, url, params=None, **kwargs):
         # note that typeform response api doesn't return limit headers

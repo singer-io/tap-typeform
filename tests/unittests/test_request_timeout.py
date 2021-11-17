@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from requests.exceptions import Timeout
+from requests.exceptions import Timeout, ConnectionError
 import tap_typeform.http as client_
 
 REQUEST_TIMEOUT_INT = 300
@@ -131,3 +131,25 @@ class TestRequestTimeouts(unittest.TestCase):
 
         # Verify that request.Request called 5 times
         self.assertEqual(mocked_request.call_count, 5)
+
+@patch('time.sleep')
+class TestConnectionError(unittest.TestCase):
+    
+    endpoint = "forms"
+
+    @patch('requests.Request', side_effect=Timeout)
+    def test_connection_error_backoff(self, mocked_request, ConnectionError):
+        """
+        We mock request.Request method to raise a `ConnectionError` and expect the tap to retry this up to 5 times
+        """
+        config = {'token': '123'}
+        client = client_.Client(config)
+        url = client.build_url(self.endpoint)
+        try:
+            client.request('GET', url)
+        except Timeout as e:
+            pass
+
+        # Verify that request.Request called 5 times
+        self.assertEqual(mocked_request.call_count, 5)
+ 
