@@ -137,8 +137,8 @@ class TestConnectionError(unittest.TestCase):
     
     endpoint = "forms"
 
-    @patch('requests.Request', side_effect=Timeout)
-    def test_connection_error_backoff(self, mocked_request, ConnectionError):
+    @patch('requests.Request', side_effect=ConnectionError)
+    def test_connection_error_backoff(self, mocked_request, mock_sleep):
         """
         We mock request.Request method to raise a `ConnectionError` and expect the tap to retry this up to 5 times
         """
@@ -147,7 +147,7 @@ class TestConnectionError(unittest.TestCase):
         url = client.build_url(self.endpoint)
         try:
             client.request('GET', url)
-        except Timeout as e:
+        except ConnectionError as e:
             pass
 
         # Verify that request.Request called 5 times
