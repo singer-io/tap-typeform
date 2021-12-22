@@ -42,11 +42,11 @@ class TypeformBookmarks(TypeformBaseTest):
         leads     '2021-04-07T20:09:39+0000',
                   '2021-04-07T20:08:27+0000',
         """
-        # The `answers` stream sets the bookmark as the date when the sync was ran. However, after
+        # The `answers` stream sets the bookmark as the date when the sync was run. However, after
         # 25th October 2021, there was no record found for `answers` stream. Hence, we altered the
-        # state to set a bookmark so that it never goes beyond 25th October, however for the `forms` 
-        # stream the bookmark is updated based on the last record. Thus the new state updated based 
-        # on stream.
+        # state to set a bookmark so that it never goes beyond 25th October, however for the `forms`
+        # stream the bookmark is updated based on the last record. Thus the new state is updated based
+        # on the stream.
         date_difference = (datetime.datetime.now() - datetime.datetime(2021, 10, 25, 00, 00, 00)).days
         timedelta_by_stream = {stream: [(date_difference if stream == 'answers' else 25), 0, 0]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_streams()}
