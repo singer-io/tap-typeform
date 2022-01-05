@@ -2,10 +2,11 @@ import requests
 import backoff
 import singer
 
-from requests.exceptions import ChunkedEncodingError
+from requests.exceptions import ChunkedEncodingError, Timeout, ConnectionError
 
 LOGGER = singer.get_logger()
 
+REQUEST_TIMEOUT = 300
 
 class TypeformError(Exception):
     def __init__(self, message=None, response=None):
@@ -73,10 +74,20 @@ class Client(object):
         self.token = 'Bearer ' + config.get('token')
         self.metric = config.get('metric')
         self.session = requests.Session()
+        # Set and pass request timeout to config param `request_timeout` value.
+        config_request_timeout = config.get('request_timeout')
+        if config_request_timeout and float(config_request_timeout):
+            self.request_timeout = float(config_request_timeout)
+        else:
+            self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
 
     def build_url(self, endpoint):
         return f"{self.BASE_URL}/{endpoint}"
 
+    @backoff.on_exception(backoff.expo,
+                          (Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
+                          max_tries=5,
+                          factor=2)
     @backoff.on_exception(backoff.expo,
                           (TypeformInternalError, TypeformNotAvailableError,
                            TypeformTooManyError, ChunkedEncodingError),
@@ -92,7 +103,7 @@ class Client(object):
 
         request = requests.Request(method, url, headers=kwargs['headers'], params=params)
 
-        response = self.session.send(request.prepare())
+        response = self.session.send(request.prepare(), timeout=self.request_timeout)# Pass request timeout
 
         if response.status_code != 200:
             raise_for_error(response)
