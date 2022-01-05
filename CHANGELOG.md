@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.4
+  * Request TimeOut Implementation [#55](https://github.com/singer-io/tap-typeform/pull/55)
+
 ## 1.4.3
   * Adds retry to `ChunkedEncodingError` on requests [#52](https://github.com/singer-io/tap-typeform/pull/52)
 
