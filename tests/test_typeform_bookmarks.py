@@ -47,8 +47,8 @@ class TypeformBookmarks(TypeformBaseTest):
         # state to set a bookmark so that it never goes beyond 25th October, however for the `forms`
         # stream the bookmark is updated based on the last record. Thus the new state is updated based
         # on the stream.
-        date_difference = (datetime.datetime.now() - datetime.datetime(2021, 10, 25, 00, 00, 00)).days
-        timedelta_by_stream = {stream: [(date_difference if stream == 'answers' else 25), 0, 0]  # {stream_name: [days, hours, minutes], ...}
+        date_difference = (datetime.datetime.now() - datetime.datetime(2021, 10, 24, 00, 00, 00)).days
+        timedelta_by_stream = {stream: [(date_difference if stream in ('answers', 'landings') else 25), 0, 0]  # {stream_name: [days, hours, minutes], ...}
                                for stream in self.expected_streams()}
         expected_replication_keys = self.expected_replication_keys()
 
