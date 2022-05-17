@@ -110,17 +110,18 @@ def get_forms(atx):
     LOGGER.info('All forms query')
     return atx.client.get_forms()
 
-def get_landings(atx, form_id):
+def get_landings(atx, form_id, bookmark):
     LOGGER.info('All landings query')
 
     page_count = 2
-    sort = 'landed_at,asc'
+    sort = 'submitted_at,asc' # sorting isn't supported with `after` and defaults to submitted_at
     token = None
 
     while page_count > 1:
         response = atx.client.get_form_responses(
             form_id,
             params={
+                'since': bookmark,
                 'page_size': MAX_RESPONSES_PAGE_SIZE,
                 'sort': sort,
                 'after': token,
@@ -293,7 +294,14 @@ def get_bookmark_value(state, stream_name, key, default=None):
 
 
 def sync_landings(atx, form_id):
-    response = get_landings(atx, form_id)
+    # similar to `answers` stream use now_parsed to fallback on and to bookmark
+    now_parsed = pendulum.now(pytz.utc)
+    default_start_date = atx.config['start_date'] or now_parsed.isoformat()
+    bookmark = get_bookmark_value(atx.state, 'landings', form_id, default=default_start_date)
+    bookmark_dt = pendulum.parse(bookmark)
+    max_dt = bookmark_dt
+
+    response = get_landings(atx, form_id, int(bookmark_dt.timestamp()))
 
     landings_data_rows = []
 
@@ -302,6 +310,8 @@ def sync_landings(atx, form_id):
             hidden = ''
         else:
             hidden = json.dumps(row['hidden'])
+
+        record_dt = pendulum.parse(row['landed_at'])
 
         # the schema here reflects what we saw through testing
         # the typeform documentation is subtly inaccurate
@@ -319,7 +329,13 @@ def sync_landings(atx, form_id):
                 "hidden": hidden
             })
 
+            max_dt = max(record_dt, max_dt)
+
+    max_dt = max(now_parsed, max_dt)
+
     write_records(atx, 'landings', landings_data_rows)
+    bookmark_value = construct_bookmark('landings', max_dt)
+    write_forms_state(atx, 'landings', form_id, bookmark_value)
 
 
 def sync_forms(atx):
