@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.5
+  * Fix `landings` stream to be incremental [#58](https://github.com/singer-io/tap-typeform/pull/58)
+
 ## 1.4.4
   * Request TimeOut Implementation [#55](https://github.com/singer-io/tap-typeform/pull/55)
 

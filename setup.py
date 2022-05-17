@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="tap-typeform",
-    version="1.4.4",
+    version="1.4.5",
     description="Singer.io tap for extracting data from the TypeForm Responses API",
     author="bytcode.io",
     url="http://singer.io",
