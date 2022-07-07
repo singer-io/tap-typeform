@@ -18,6 +18,13 @@
       	"ref": {
             "type": ["null", "string"],
 	    "selected": true
+	},
+	"sub_questions": {
+		"type": ["null", "array"],
+		"items": {
+			"type": ["null", "object"],
+			"properties": {}
+		}
 	}
     },
     "key_properties": ["form_id","question_id"]

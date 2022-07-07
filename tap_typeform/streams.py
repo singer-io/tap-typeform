@@ -136,6 +136,23 @@ def get_landings(atx, form_id, bookmark):
 
         yield from items
 
+def fetch_sub_questions(row):
+    '''This function fetches records for each sub_question in a question group and returns a list of fetched sub_questions'''
+    sub_questions = [] #Creating blank list to accommodate each sub-question's records
+
+    #If question group has no sub_questions, return blank list
+    if row['properties'].get('fields') == None :
+        return None
+
+    #Appending each sub-question to the list
+    for question in row['properties']['fields']:
+        sub_questions.append({
+            "question_id": question['id'],
+            "title": question['title'],
+            "ref": question['ref']
+            })
+
+    return sub_questions
 
 def sync_form_definition(atx, form_id):
     with singer.metrics.job_timer('form definition '+form_id):
@@ -156,12 +173,19 @@ def sync_form_definition(atx, form_id):
     # we only care about a few fields in the form definition
     # just those that give an analyst a reference to the submissions
     for row in data:
+        sub_questions ={} #Creating a blank dictionary to store records of sub_questions,if any
+
+        #If type of question is group, i.e. it has sub_questions, then fetch those sub_questions
+        if row['type'] == 'group':
+            sub_questions['sub_questions'] = fetch_sub_questions(row)
+
+        #If sub_questions are fetched then add those in this field and display the same, else don't display this field
         definition_data_rows.append({
             "form_id": form_id,
             "question_id": row['id'],
             "title": row['title'],
             "ref": row['ref']
-            })
+            }|sub_questions)
 
     write_records(atx, 'questions', definition_data_rows)
 
