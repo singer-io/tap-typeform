@@ -140,12 +140,8 @@ def fetch_sub_questions(row):
     '''This function fetches records for each sub_question in a question group and returns a list of fetched sub_questions'''
     sub_questions = [] #Creating blank list to accommodate each sub-question's records
 
-    #If question group has no sub_questions, return blank list
-    if row['properties'].get('fields') == None :
-        return None
-
     #Appending each sub-question to the list
-    for question in row['properties']['fields']:
+    for question in row['properties'].get('fields',[]):
         sub_questions.append({
             "question_id": question['id'],
             "title": question['title'],
