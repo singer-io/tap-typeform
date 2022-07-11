@@ -26,7 +26,13 @@ def test_fetched_sub_question():
             },
             'type': 'group'
         }]
-    expected_case = [{'question_id': 'id1', 'title': 'title1', 'ref': 'ref1'}, {'question_id': 'id2', 'title': 'title2', 'ref': 'title2'}]
+    expected_case = [
+        {
+            'question_id': 'id1', 'title': 'title1', 'ref': 'ref1'
+        },
+        {
+            'question_id': 'id2', 'title': 'title2', 'ref': 'title2'
+        }]
 
     for test_case in test_cases :
         if test_case ['properties'].get('fields'):
