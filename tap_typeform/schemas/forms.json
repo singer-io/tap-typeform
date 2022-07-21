@@ -28,6 +28,13 @@
         "string"
       ]
     },
+    "created_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
     "settings": {
       "type": [
         "null",
