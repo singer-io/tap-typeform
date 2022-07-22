@@ -93,7 +93,7 @@ def raise_for_error(response):
 
                 message = "HTTP-error-code: {}, Error: {}".format(
                     error_code,
-                    response_json.get("description", "Uknown Error"))
+                    response_json.get("description", "Unknown Error"))
 
             exc = ERROR_CODE_EXCEPTION_MAPPING.get(error_code, {}).get("raise_exception", TypeformError)
             message = ERROR_CODE_EXCEPTION_MAPPING.get(error_code, {}).get("message", "")
@@ -110,6 +110,8 @@ class Client(object):
         self.token = 'Bearer ' + config.get('token')
         self.metric = config.get('metric')
         self.session = requests.Session()
+        self.fetch_uncompleted_forms = config.get('fetch_uncompleted_forms', False)
+
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = config.get('request_timeout')
         if config_request_timeout and float(config_request_timeout):
