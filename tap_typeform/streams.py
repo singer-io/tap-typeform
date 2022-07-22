@@ -145,7 +145,7 @@ class IncrementalStream(Stream):
         params = {**self.params}
         params['since'] = int(pendulum.parse(min_bookmark_value).timestamp())
         
-        while page_count > 0:
+        while page_count > 1:
             response = client.request(full_url, params)
             records = response[self.data_key]
             max_bookmark_value = self.write_records(records, catalogs, selected_stream_ids,
