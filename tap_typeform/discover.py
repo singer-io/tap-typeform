@@ -1,31 +1,33 @@
-from singer.catalog import Catalog, metadata_module as metadata
-from tap_typeform import schema
+import singer
+from singer.catalog import Catalog, CatalogEntry, Schema
+from tap_typeform.schema import get_schemas
 
+LOGGER = singer.get_logger()
 
 def discover():
-    streams = []
-    for tap_stream_id in schema.STATIC_SCHEMA_STREAM_IDS:
-        key_properties = schema.PK_FIELDS[tap_stream_id]
-        stream_schema = schema.load_schema(tap_stream_id)
-        replication_method = schema.REPLICATION_METHODS[tap_stream_id].get("replication_method")
-        replication_keys = schema.REPLICATION_METHODS[tap_stream_id].get("replication_keys")
-        meta = metadata.get_standard_metadata(schema=stream_schema,
-                                              key_properties=key_properties,
-                                              replication_method=replication_method,
-                                              valid_replication_keys=replication_keys)
+    """
+    Run the discovery mode, prepare the catalog file and return the catalog.
+    """
+    schemas, field_metadata = get_schemas()
+    catalog = Catalog([])
 
-        meta = metadata.to_map(meta)
+    for stream_name, schema_dict in schemas.items():
+        try:
+            schema = Schema.from_dict(schema_dict)
+            mdata = field_metadata[stream_name]
+        except Exception as err:
+            LOGGER.error(err)
+            LOGGER.error('stream_name: %s', stream_name)
+            LOGGER.error('type schema_dict: %s', type(schema_dict))
+            raise err
 
-        if replication_keys:
-            meta = metadata.write(meta, ('properties', replication_keys[0]), 'inclusion', 'automatic')
+        key_properties = mdata[0]['metadata'].get('table-key-properties')
+        catalog.streams.append(CatalogEntry(
+            stream=stream_name,
+            tap_stream_id=stream_name,
+            key_properties= key_properties,
+            schema=schema,
+            metadata=mdata
+        ))
 
-        meta = metadata.to_list(meta)
-
-        streams.append({
-            'stream': tap_stream_id,
-            'tap_stream_id': tap_stream_id,
-            'key_properties': key_properties,
-            'schema': stream_schema,
-            'metadata': meta,
-        })
-    return Catalog.from_dict({'streams': streams})
+    return catalog

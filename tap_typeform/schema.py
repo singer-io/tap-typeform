@@ -1,50 +1,49 @@
 import os
-import re
-
+import json
+from singer import metadata
 import singer
-from singer import utils
-
-class IDS(object):
-    LANDINGS = 'landings'
-    ANSWERS = 'answers'
-    QUESTIONS = 'questions'
-    FORMS = 'forms'
-
-STATIC_SCHEMA_STREAM_IDS = [
-    IDS.LANDINGS,
-    IDS.ANSWERS,
-    IDS.QUESTIONS,
-    IDS.FORMS,
-]
-
-PK_FIELDS = {
-    IDS.LANDINGS: ['landing_id'],
-    IDS.ANSWERS: ['landing_id', 'question_id'],
-    IDS.QUESTIONS: ['form_id', 'question_id'],
-    IDS.FORMS: ['id']
-}
-
-REPLICATION_METHODS = {
-    IDS.LANDINGS: {"replication_method": "INCREMENTAL", "replication_keys": ["landed_at"]},
-    IDS.ANSWERS: {"replication_method": "INCREMENTAL", "replication_keys": ["landed_at"]},
-    IDS.QUESTIONS: {"replication_method": "FULL_TABLE", "replication_keys": None},
-    IDS.FORMS: {"replication_method": "INCREMENTAL", "replication_keys": ["last_updated_at"]}
-}
-
-def normalize_fieldname(fieldname):
-    fieldname = fieldname.lower()
-    fieldname = re.sub(r'[\s\-]', '_', fieldname)
-    return re.sub(r'[^a-z0-9_]', '', fieldname)
-
+from tap_typeform.streams import STREAMS
 
 def get_abs_path(path):
+    """
+    Get the absolute path for the schema files.
+    """
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
-def load_schema(tap_stream_id):
-    path = 'schemas/{}.json'.format(tap_stream_id)
-    #print("schema path=",path)
-    return utils.load_json(get_abs_path(path))
+def get_schemas():
+    """
+    Load the schema references, prepare metadata for each streams and return schema and metadata for the catalog.
+    """
+    schemas = {}
+    field_metadata = {}
 
-def load_and_write_schema(tap_stream_id):
-    schema = load_schema(tap_stream_id)
-    singer.write_schema(tap_stream_id, schema, PK_FIELDS[tap_stream_id])
+    refs = {}
+    for stream_name, stream_metadata in STREAMS.items():
+        schema_path = get_abs_path('schemas/{}.json'.format(stream_name))
+
+        with open(schema_path) as file:
+            schema = json.load(file)
+
+        schemas[stream_name] = schema
+        schema = singer.resolve_schema_references(schema, refs)
+
+        mdata = metadata.new()
+        mdata = metadata.get_standard_metadata(
+                schema=schema,
+                key_properties = (hasattr(stream_metadata, 'key_properties') or None) and stream_metadata.key_properties,
+                valid_replication_keys = (hasattr(stream_metadata, 'replication_keys') or None) and stream_metadata.replication_keys,
+                replication_method = (hasattr(stream_metadata, 'replication_method') or None) and stream_metadata.replication_method
+            )
+        mdata = metadata.to_map(mdata)
+
+        # Loop through all keys and make replication keys of automatic inclusion
+        for field_name in schema['properties'].keys():
+
+            replication_keys = (hasattr(stream_metadata, 'replication_keys') or None) and stream_metadata.replication_keys
+            if replication_keys and field_name in replication_keys:
+                mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
+
+        mdata = metadata.to_list(mdata)
+        field_metadata[stream_name] = mdata
+
+    return schemas, field_metadata
