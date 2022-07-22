@@ -6,7 +6,7 @@ from tap_typeform.sync import _forms_to_list, sync as _sync
 from tap_typeform.client import Client
 from tap_typeform.streams import Forms
 
-REQUIRED_CONFIG_KEYS = ["start_date", "token", "forms", "incremental_range"]
+REQUIRED_CONFIG_KEYS = ["start_date", "token", "forms"]
 
 LOGGER = singer.get_logger()
 
