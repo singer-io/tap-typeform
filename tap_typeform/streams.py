@@ -121,7 +121,7 @@ class IncrementalStream(Stream):
                 stream_metadata = singer.metadata.to_map(stream_catalog['metadata'])
 
                 for record in records:
-                    self.add_fields_at_1st_level(record)
+                    self.add_fields_at_1st_level(record, {"form_id": form_id})
                     if self.tap_stream_id in selected_stream_ids and record[self.replication_key] >= bookmark:
                         rec = transformer.transform(record, stream_catalog['schema'], stream_metadata)
                         singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
@@ -244,6 +244,7 @@ class Landings(IncrementalStream):
 
     def add_fields_at_1st_level(self, record, additional_data={}):
         record.update({
+                "_sdc_form_id": additional_data['form_id'],
                 "user_agent": record["metadata"]["user_agent"],
                 "platform": record["metadata"]["platform"],
                 "referer": record["metadata"]["referer"],
@@ -297,6 +298,7 @@ class Answers(IncrementalStream):
             answer_value = record.get(data_type)
 
         record.update({
+            "_sdc_form_id": additional_data['_sdc_form_id'],
             "landing_id": additional_data.get('landing_id'),
             "question_id": record.get('field',{}).get('id'),
             "type": record.get('field',{}).get('type'),

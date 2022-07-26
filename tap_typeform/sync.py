@@ -1,10 +1,11 @@
 import singer
-from tap_typeform import streams, schema
 from tap_typeform.streams import STREAMS
 LOGGER = singer.get_logger()
 
 def _forms_to_list(config, keyword='forms'):
-    """Splits entries into a list and strips out surrounding blank spaces"""
+    """
+    Splits entries into a list and strips out surrounding blank spaces.
+    """
     return set(map(str.strip, config.get(keyword).split(',')))
 
 
@@ -15,7 +16,7 @@ def write_schemas(stream_id, catalog, selected_streams):
     stream_obj = STREAMS[stream_id]()
 
     if stream_id in selected_streams:
-        # Get catalog object for particular stream.
+        # Get catalog object for a particular stream.
         stream = [cat for cat in catalog['streams'] if cat['tap_stream_id'] == stream_id ][0]
         singer.write_schema(stream_id, stream['schema'], stream['key_properties'])
 
@@ -48,6 +49,9 @@ def get_stream_to_sync(selected_streams):
     return streams_to_sync
 
 def sync(client, config, state, catalog):
+    """
+    Sync selected streams.
+    """
 
     # Get selected streams, make sure stream dependencies are met
     selected_streams = get_selected_streams(catalog)
@@ -56,10 +60,10 @@ def sync(client, config, state, catalog):
     singer.write_state(state)
     for stream in streams_to_sync:
         stream_obj = STREAMS[stream]()
-        
+
         if stream == 'forms' and stream in selected_streams:
             write_schemas(stream, catalog, selected_streams)
-            
+
             stream_obj.sync_obj(client, state, catalog['streams'], config["start_date"],
                         selected_streams)
         elif not stream_obj.parent:

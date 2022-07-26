@@ -68,6 +68,9 @@ ERROR_CODE_EXCEPTION_MAPPING = {
 }
 
 def raise_for_error(response):
+    """
+    Retrieve the error code and the error message from the response and return custom exceptions accordingly.
+    """
     try:
         response.raise_for_status()
     except (requests.HTTPError, requests.ConnectionError) as error:
@@ -123,9 +126,9 @@ class Client(object):
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,(Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
-                          max_tries=5, factor=2)
+                            max_tries=5, factor=2)
     @backoff.on_exception(backoff.expo, (TypeformInternalError, TypeformNotAvailableError, TypeformTooManyError, ChunkedEncodingError),
-                          max_tries=3, factor=2)
+                            max_tries=3, factor=2)
     def request(self, url, params=None, **kwargs):
 
         if 'headers' not in kwargs:
@@ -137,7 +140,6 @@ class Client(object):
 
         if response.status_code != 200:
             raise_for_error(response)
-            return None
 
         if 'total_items' in response.json():
             LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
