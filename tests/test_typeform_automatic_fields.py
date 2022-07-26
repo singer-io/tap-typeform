@@ -74,9 +74,10 @@ class TypeformAutomaticFields(TypeformBaseTest):
                     self.assertSetEqual(expected_keys, actual_keys)
 
                 #Verify that all replicated records have unique primary key values.
-                self.assertEqual(len(primary_keys_list),
-                                    len(unique_primary_keys_list),
-                                    msg="Replicated record does not have unique primary key values.")
+                self.assertEqual(
+                    len(primary_keys_list),
+                    len(unique_primary_keys_list),
+                    msg="Replicated record does not have unique primary key values.")
 
 
 ########### Verified the below test cases from the test cases sheet and added in the above code ##########################

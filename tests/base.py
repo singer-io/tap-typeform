@@ -27,7 +27,9 @@ class TypeformBaseTest(unittest.TestCase):
     INCREMENTAL = "INCREMENTAL"
     FULL_TABLE = "FULL_TABLE"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
+    RECORD_REPLICATION_KEY_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
     BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00+00:00"
+    OBEYS_START_DATE = "obey-start-date"
     LOGGER = get_logger()
 
     start_date = '2021-05-10T00:00:00Z'
@@ -70,21 +72,25 @@ class TypeformBaseTest(unittest.TestCase):
             "answers": {
                 self.PRIMARY_KEYS: {"landing_id", "question_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"landed_at"}
+                self.REPLICATION_KEYS: {"landed_at"},
+                self.OBEYS_START_DATE: True
             },
             "landings": {
                 self.PRIMARY_KEYS: {"landing_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"landed_at"}
+                self.REPLICATION_KEYS: {"landed_at"},
+                self.OBEYS_START_DATE: True
             },
             "questions": {
                 self.PRIMARY_KEYS: {"form_id", "question_id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             },
             "forms": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"last_updated_at"}
+                self.REPLICATION_KEYS: {"last_updated_at"},
+                self.OBEYS_START_DATE: True
             }
         }
 
@@ -128,11 +134,13 @@ class TypeformBaseTest(unittest.TestCase):
                 in self.expected_metadata().items()}
 
     def expected_automatic_fields(self):
-        auto_fields = {}
-        for k, v in self.expected_metadata().items():
-            auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | v.get(self.REPLICATION_KEYS, set()) \
-                | v.get(self.FOREIGN_KEYS, set())
-        return auto_fields
+        """
+        Return a dictionary with the key of the table name
+        and value as a set of automatic key fields
+        """
+        return {table: ((self.expected_primary_keys().get(table) or set()) |
+                        (self.expected_replication_keys().get(table) or set()))
+                for table in self.expected_metadata()}
 
     def expected_replication_method(self):
         """return a dictionary with key of table name nd value of replication method"""
