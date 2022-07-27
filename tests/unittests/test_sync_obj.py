@@ -255,7 +255,7 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
     }
     @parameterized.expand([
         (Answers, answer_record, {"landing_id": 1,"landed_at": "", "_sdc_form_id": "form1"}, answer_expected_record),
-        (Landings, landing_record, {"form_id": "form1"}, landing_expected_record),
+        (Landings, landing_record, {"_sdc_form_id": "form1"}, landing_expected_record),
         (Questions, que_record, {"form_id": "form1"}, que_expected_record),
     ])
     def test_add_field(self, stream, record, aditional_data, expected_record):
