@@ -222,7 +222,8 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "data_type": "text",
         "landed_at": "",
         "answer": "",
-        "text": ""
+        "text": "",
+        "_sdc_form_id": "form1"
     }
 
     landing_record = {
@@ -241,7 +242,8 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "referer": "",
         "network_id": "",
         "browser": "default",
-        "hidden": ""
+        "hidden": "",
+        "_sdc_form_id": "form1"
     }
     que_record= {
         "id": "que_id_1"
@@ -252,8 +254,8 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "form_id": "form1",
     }
     @parameterized.expand([
-        (Answers, answer_record, {"landing_id": 1,"landed_at": "",}, answer_expected_record),
-        (Landings, landing_record, {}, landing_expected_record),
+        (Answers, answer_record, {"landing_id": 1,"landed_at": "", "_sdc_form_id": "form1"}, answer_expected_record),
+        (Landings, landing_record, {"form_id": "form1"}, landing_expected_record),
         (Questions, que_record, {"form_id": "form1"}, que_expected_record),
     ])
     def test_add_field(self, stream, record, aditional_data, expected_record):
