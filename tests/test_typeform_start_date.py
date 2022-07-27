@@ -27,7 +27,7 @@ class TypeformStartDateTest(TypeformBaseTest):
         """
 
         self.start_date_1 = self.get_properties().get('start_date')
-        self.start_date_2 = "2022-07-21T00:00:00"
+        self.start_date_2 = "2022-07-21T00:00:00Z"
         self.start_date = self.start_date_1
 
         # Streams to verify start date tests

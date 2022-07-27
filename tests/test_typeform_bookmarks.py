@@ -35,7 +35,7 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
         ### First Sync
         ##########################################################################
-        self.start_date_1 = "2022-07-20T06:59:45Z"
+        self.start_date_1 = "2022-07-20T00:00:00Z"
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=3)
 
         self.start_date = self.start_date_1
