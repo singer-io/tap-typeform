@@ -1,23 +1,18 @@
 {
     "type": ["null", "object"],
-    "selected": true,
     "additionalProperties": false,
     "properties": {
 	"form_id": {
-	    "type": ["null", "string"],
-	    "selected": true
+	    "type": ["null", "string"]
 	},
 	"question_id": {
-	    "type": ["null", "string"],
-	    "selected": true
+	    "type": ["null", "string"]
 	},
       	"title": {
-            "type": ["null", "string"],
-	    "selected": true
+            "type": ["null", "string"]
 	},
       	"ref": {
-            "type": ["null", "string"],
-	    "selected": true
+            "type": ["null", "string"]
 	}
     },
     "key_properties": ["form_id","question_id"]
