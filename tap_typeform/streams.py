@@ -60,9 +60,9 @@ def write_bookmarks(stream, selected_streams, form_id, bookmark_value, state):
     # If the stream is selected, write the bookmark.
     if stream in selected_streams:
         if form_id:
-            singer.write_bookmark(state, stream_obj.tap_stream_id, form_id, {stream_obj.replication_key: bookmark_value})
+            singer.write_bookmark(state, stream_obj.tap_stream_id, form_id, {stream_obj.replication_keys[0]: bookmark_value})
         else:
-            singer.write_bookmark(state, stream_obj.tap_stream_id, stream_obj.replication_key, bookmark_value)
+            singer.write_bookmark(state, stream_obj.tap_stream_id, stream_obj.replication_keys[0], bookmark_value)
 
     # For the each child, write the bookmark if it is selected.
     for child in stream_obj.children:
@@ -78,7 +78,7 @@ def write_forms_state(state, stream_name, form_id, value):
 class Stream:
     tap_stream_id = None
     replication_method = None
-    replication_key = None
+    replication_keys = []
     key_properties = []
     endpoint = None
     filter_param = False
@@ -96,14 +96,14 @@ class Stream:
 
         for child in self.children:
             child_obj = STREAMS[child]()
-            child_bookmark = get_bookmark(state, child_obj.tap_stream_id, form_id, self.replication_key, start_date)
+            child_bookmark = get_bookmark(state, child_obj.tap_stream_id, form_id, self.replication_keys[0], start_date)
 
-            if child in selected_stream_ids and record[child_obj.replication_key] >= child_bookmark:
+            if child in selected_stream_ids and record[child_obj.replication_keys[0]] >= child_bookmark:
                 child_catalog = get_schema(catalogs, child)
                 for rec in record[self.child_data_key]:
                     child_obj.add_fields_at_1st_level(rec, record)
                 write_records(child_catalog, child_obj.tap_stream_id, record[self.child_data_key])
-                max_bookmark = max(max_bookmark, record[child_obj.replication_key])
+                max_bookmark = max(max_bookmark, record[child_obj.replication_keys[0]])
         return max_bookmark
 
 class IncrementalStream(Stream):
@@ -113,7 +113,7 @@ class IncrementalStream(Stream):
     def write_records(self, records, catalogs, selected_stream_ids,
                        form_id, max_bookmark, state, start_date):
         stream_catalog = get_schema(catalogs, self.tap_stream_id)
-        bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_key, start_date)
+        bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
 
         with singer.metrics.record_counter(self.tap_stream_id) as counter: 
             with singer.Transformer() as transformer:
@@ -121,11 +121,11 @@ class IncrementalStream(Stream):
                 stream_metadata = singer.metadata.to_map(stream_catalog['metadata'])
 
                 for record in records:
-                    self.add_fields_at_1st_level(record, {"form_id": form_id})
-                    if self.tap_stream_id in selected_stream_ids and record[self.replication_key] >= bookmark:
+                    self.add_fields_at_1st_level(record, {"_sdc_form_id": form_id})
+                    if self.tap_stream_id in selected_stream_ids and record[self.replication_keys[0]] >= bookmark:
                         rec = transformer.transform(record, stream_catalog['schema'], stream_metadata)
                         singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
-                        max_bookmark = max(max_bookmark, record[self.replication_key])
+                        max_bookmark = max(max_bookmark, record[self.replication_keys[0]])
                         counter.increment(1)
 
                     # Write selected child records
@@ -140,9 +140,9 @@ class IncrementalStream(Stream):
                  start_date, selected_stream_ids):
         full_url = client.build_url(self.endpoint).format(form_id)
         current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-        bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_key, start_date)
+        bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
         min_bookmark_value = get_min_bookmark(self.tap_stream_id, selected_stream_ids,
-                                              current_time, start_date, state, form_id, self.replication_key)
+                                              current_time, start_date, state, form_id, self.replication_keys[0])
         max_bookmark = bookmark
         page_count = 2
         params = {**self.params}
@@ -181,7 +181,7 @@ class Forms(IncrementalStream):
     key_properties = ['id']
     endpoint='forms'
     replication_method = 'INCREMENTAL'
-    replication_key = 'last_updated_at'
+    replication_keys = ['last_updated_at']
     data_key = 'items'
     params = {'page_size': FORMS_PAGE_SIZE}
 
@@ -200,7 +200,7 @@ class Forms(IncrementalStream):
 
     def sync_obj(self, client, state, catalogs,
                  start_date, selected_stream_ids):
-        bookmark = state.get('bookmarks',{}).get(self.tap_stream_id,{}).get(self.replication_key, start_date)
+        bookmark = state.get('bookmarks',{}).get(self.tap_stream_id,{}).get(self.replication_keys[0], start_date)
         max_bookmark = bookmark
 
         for records in self.get_forms(client):
@@ -229,7 +229,7 @@ class Questions(FullTableStream):
 
 class Landings(IncrementalStream):
     tap_stream_id = 'landings'
-    replication_key = 'landed_at'
+    replication_keys = ['landed_at']
     key_properties = ['landing_id']
     endpoint = 'forms/{}/responses'
     children = ['answers']
@@ -244,7 +244,7 @@ class Landings(IncrementalStream):
 
     def add_fields_at_1st_level(self, record, additional_data={}):
         record.update({
-                "_sdc_form_id": additional_data['form_id'],
+                "_sdc_form_id": additional_data["_sdc_form_id"],
                 "user_agent": record["metadata"]["user_agent"],
                 "platform": record["metadata"]["platform"],
                 "referer": record["metadata"]["referer"],
@@ -259,7 +259,7 @@ class Landings(IncrementalStream):
 
         if client.fetch_uncompleted_forms:
             full_url = client.build_url(self.endpoint).format(form_id)
-            bookmark = get_bookmark(old_state, self.tap_stream_id, form_id, self.replication_key, start_date)
+            bookmark = get_bookmark(old_state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
 
             max_bookmark = bookmark
             page_count = 2
@@ -276,13 +276,13 @@ class Landings(IncrementalStream):
                 if records:
                     params['before'] = records[-1].get('token')
 
-            max_bookmark = max(max_bookmark, get_bookmark(state, self.tap_stream_id, form_id, self.replication_key, start_date))
+            max_bookmark = max(max_bookmark, get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date))
             write_bookmarks(self.tap_stream_id, selected_stream_ids, form_id, max_bookmark, state)
             singer.write_state(state)
 
 class Answers(IncrementalStream):
     tap_stream_id = 'answers'
-    replication_key = 'landed_at'
+    replication_keys = ['landed_at']
     key_properties = ['landing_id', 'question_id']
     parent = 'landings'
     data_key = 'answers'
