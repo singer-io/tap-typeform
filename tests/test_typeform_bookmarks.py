@@ -75,10 +75,10 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
         self.start_date = self.start_date_2
 
-        # run check mode
+        # Run check mode
         found_catalogs = self.run_and_verify_check_mode(conn_id)
 
-        # table and field selection
+        # Table and field selection
         test_catalogs_2_all_fields = [catalog for catalog in found_catalogs
                                       if catalog.get('tap_stream_id') in expected_streams]
         self.perform_and_verify_table_and_field_selection(conn_id, test_catalogs_2_all_fields, select_all_fields=True)
@@ -97,11 +97,11 @@ class TypeformBookmarks(TypeformBaseTest):
                 first_bookmark_key_value = first_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
                 second_bookmark_key_value = second_sync_bookmarks.get('bookmarks', {stream: None}).get(stream)
 
-                # expected values
+                # Expected values
                 first_sync_count = first_sync_record_count.get(stream, 0)
                 second_sync_count = second_sync_record_count.get(stream, 0)
 
-                # collect information for assertions from syncs 1 & 2 base on expected values
+                # Collect information for assertions from syncs 1 & 2 base on expected values
                 first_sync_messages = [record.get('data') for record in
                                     first_sync_records.get(stream).get('messages')
                                     if record.get('action') == 'upsert']
