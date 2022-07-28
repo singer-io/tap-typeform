@@ -145,7 +145,7 @@ class IncrementalStream(Stream):
                                                 current_time, start_date, state, form_id, self.replication_keys[0])
         max_bookmark = bookmark
         page_count = 2
-        params = {**self.params}
+        params = {**self.params, "page_size": client.page_size}
         params['since'] = int(pendulum.parse(min_bookmark_value).timestamp())
 
         while page_count > 1:
@@ -183,13 +183,12 @@ class Forms(IncrementalStream):
     replication_method = 'INCREMENTAL'
     replication_keys = ['last_updated_at']
     data_key = 'items'
-    params = {'page_size': FORMS_PAGE_SIZE}
 
     def get_forms(self, client):
         full_url = client.build_url(self.endpoint)
         page = 1
         paginate = True
-        params = {**self.params}
+        params = {**self.params, "page_size": client.form_page_size}
         while paginate:
             params['page'] = page
             response = client.request(full_url, params=params)
@@ -236,7 +235,6 @@ class Landings(IncrementalStream):
     headers = None
     params = {
                 'since': '',
-                'page_size': MAX_RESPONSES_PAGE_SIZE,
                 'completed': True
             }
     data_key = 'items'

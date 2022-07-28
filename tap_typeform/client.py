@@ -7,6 +7,8 @@ from requests.exceptions import ChunkedEncodingError, Timeout, ConnectionError
 LOGGER = singer.get_logger()
 
 REQUEST_TIMEOUT = 300
+MAX_RESPONSES_PAGE_SIZE = 1000
+FORMS_PAGE_SIZE = 100
 
 class TypeformError(Exception):
     def __init__(self, message=None, response=None):
@@ -114,6 +116,9 @@ class Client(object):
         self.metric = config.get('metric')
         self.session = requests.Session()
         self.fetch_uncompleted_forms = config.get('fetch_uncompleted_forms', False)
+        self.page_size = MAX_RESPONSES_PAGE_SIZE
+        self.form_page_size = FORMS_PAGE_SIZE
+        self.get_page_size(config)
 
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = config.get('request_timeout')
@@ -121,6 +126,18 @@ class Client(object):
             self.request_timeout = float(config_request_timeout)
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
+
+    def get_page_size(self, config):
+        """
+        This function will get page size from config,
+        and will return the default value if invalid page size is given.
+        """
+        page_size = config.get('page_size')
+        try:
+            if int(float(page_size)) > 0:
+                self.page_size = self.form_page_size = int(float(page_size))
+        except Exception:
+            LOGGER.warning(f"The entered page size is invalid; it will be set to the default page size of {self.form_page_size} for forms and {self.page_size} for others")
 
     def build_url(self, endpoint):
         return f"{self.BASE_URL}/{endpoint}"
@@ -137,10 +154,10 @@ class Client(object):
             kwargs['headers']['Authorization'] = self.token
 
         response = self.session.get(url, params=params, headers=kwargs['headers'], timeout=self.request_timeout)
-
+        # LOGGER.info(f'>>>>>- {params} {url}')
         if response.status_code != 200:
             raise_for_error(response)
 
-        if 'total_items' in response.json():
-            LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
+        # if 'total_items' in response.json():
+            # LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
         return response.json()
