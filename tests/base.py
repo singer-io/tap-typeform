@@ -30,6 +30,8 @@ class TypeformBaseTest(unittest.TestCase):
     RECORD_REPLICATION_KEY_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
     BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00+00:00"
     OBEYS_START_DATE = "obey-start-date"
+    PAGE_SIZE = 1000
+    FORM_PAGE_SIZE = 200
     LOGGER = get_logger()
 
     start_date = '2021-05-10T00:00:00Z'
@@ -41,7 +43,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     @staticmethod
     def get_type():
-        """the expected url route ending"""
+        """The expected url route ending"""
         return "platform.typeform"
 
     def get_properties(self, original: bool = True):
