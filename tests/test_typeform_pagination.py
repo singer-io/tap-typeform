@@ -1,10 +1,11 @@
-#for tap-typeform pagination
+import os
+from math import ceil
 import tap_tester.connections as connections
 import tap_tester.runner as runner
 import tap_tester.menagerie as menagerie
 from base import TypeformBaseTest
 
-class PaginationTest(TypeformBaseTest):
+class TypeformPaginationTest(TypeformBaseTest):
     """
     Ensure tap can replicate multiple pages of data for streams that use pagination.
     """
@@ -12,17 +13,27 @@ class PaginationTest(TypeformBaseTest):
     def name(self):
         return "tap_tester_typeform_pagination_test"
 
+    def get_properties(self, original: bool = True):
+        """Configuration properties required for the tap."""
+        return_value = {
+            'start_date' : '2021-05-10T00:00:00Z',
+            'forms': os.getenv('TAP_TYPEFORM_FORMS'),
+            'incremental_range': 'daily',
+            'page_size': self.PAGE_SIZE
+        }
+        return return_value
+
     def test_run(self):
         """
         • Verify that for each stream you can get multiple pages of data.  
         This requires we ensure more than 1 page of data exists at all times for any given stream.
         • Verify by pks that the data replicated matches the data we expect.
         """
-        expected_streams = self.expected_streams()
+        expected_streams = self.expected_streams() - {'questions', 'answers'}
 
-        # Reduce page_size to 2 due to less data.
-        self.run_test(expected_streams, page_size=2)    
-    
+        # Reduce page_size to 5 as unable to generate more data.
+        self.run_test(expected_streams, page_size=5)
+
     def run_test(self, expected_streams, page_size):
 
         streams_to_test = expected_streams
@@ -56,7 +67,7 @@ class PaginationTest(TypeformBaseTest):
                 expected_primary_keys = self.expected_primary_keys()[stream]
          
                 # Verify that we can paginate with all fields selected
-                record_count_sync = record_count_by_stream.get(stream, 0)
+                record_count_sync = record_count_by_stream.get(stream, -1)
                 self.assertGreater(record_count_sync, page_size,
                                     msg="The number of records is not over the stream max limit")
 
@@ -73,3 +84,24 @@ class PaginationTest(TypeformBaseTest):
                 # Verify by primary keys that data is unique for page
                 self.assertTrue(
                     primary_keys_page_1.isdisjoint(primary_keys_page_2))
+
+                # Chunk the replicated records (just primary keys) into expected pages
+                pages = []
+                page_count = ceil(len(primary_keys_list) / self.PAGE_SIZE)
+                page_size = self.PAGE_SIZE
+                for page_index in range(page_count):
+                    page_start = page_index * page_size
+                    page_end = (page_index + 1) * page_size
+                    pages.append(set(primary_keys_list[page_start:page_end]))
+
+                # Verify by primary keys that data is unique for each page
+                for current_index, current_page in enumerate(pages):
+                    with self.subTest(current_page_primary_keys=current_page):
+
+                        for other_index, other_page in enumerate(pages):
+                            if current_index == other_index:
+                                continue  # don't compare the page to itself
+
+                            self.assertTrue(
+                                current_page.isdisjoint(other_page), msg=f'other_page_primary_keys={other_page}'
+                            )
