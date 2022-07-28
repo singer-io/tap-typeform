@@ -12,7 +12,7 @@ MAX_METRIC_JOB_TIME = 1800
 METRIC_JOB_POLL_SLEEP = 1
 FORM_STREAMS = ['landings', 'answers'] #streams that get sync'd in sync_forms
 MAX_RESPONSES_PAGE_SIZE = 1000
-FORMS_PAGE_SIZE = 100
+FORMS_PAGE_SIZE = 200
 
 def write_records(catalog_entry, tap_stream_id, records):
     extraction_time = singer.utils.now()
@@ -188,7 +188,7 @@ class Forms(IncrementalStream):
         full_url = client.build_url(self.endpoint)
         page = 1
         paginate = True
-        params = {**self.params, "page_size": client.form_page_size}
+        params = {**self.params, "page_size": min(client.form_page_size, FORMS_PAGE_SIZE)}
         while paginate:
             params['page'] = page
             response = client.request(full_url, params=params)
@@ -213,10 +213,7 @@ class Questions(FullTableStream):
     tap_stream_id = 'questions'
     key_properties = ['form_id', 'question_id']
     endpoint = 'forms/{}'
-    params = {
-                'since': '',
-                'page_size': MAX_RESPONSES_PAGE_SIZE,
-            }
+    params = {}
     data_key = 'fields'
 
     def add_fields_at_1st_level(self, record, additional_data={}):

@@ -8,7 +8,7 @@ LOGGER = singer.get_logger()
 
 REQUEST_TIMEOUT = 300
 MAX_RESPONSES_PAGE_SIZE = 1000
-FORMS_PAGE_SIZE = 100
+FORMS_PAGE_SIZE = 200
 
 class TypeformError(Exception):
     def __init__(self, message=None, response=None):
@@ -134,10 +134,14 @@ class Client(object):
         """
         page_size = config.get('page_size')
         try:
-            if int(float(page_size)) > 0:
+            if page_size is None:
+                pass
+            elif int(float(page_size)) > 0:
                 self.page_size = self.form_page_size = int(float(page_size))
+            else:
+                raise Exception
         except Exception:
-            LOGGER.warning(f"The entered page size is invalid; it will be set to the default page size of {self.form_page_size} for forms and {self.page_size} for others")
+            raise Exception(f"The entered page size is invalid, it should be a valid integer.") from None
 
     def build_url(self, endpoint):
         return f"{self.BASE_URL}/{endpoint}"
@@ -154,10 +158,9 @@ class Client(object):
             kwargs['headers']['Authorization'] = self.token
 
         response = self.session.get(url, params=params, headers=kwargs['headers'], timeout=self.request_timeout)
-        # LOGGER.info(f'>>>>>- {params} {url}')
         if response.status_code != 200:
             raise_for_error(response)
 
-        # if 'total_items' in response.json():
-            # LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
+        if 'total_items' in response.json():
+            LOGGER.info('raw data items= {}'.format(response.json()['total_items']))
         return response.json()
