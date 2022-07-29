@@ -74,10 +74,16 @@ class TypeformBaseTest(unittest.TestCase):
             "answers": {
                 self.PRIMARY_KEYS: {"landing_id", "question_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"landed_at"},
+                self.REPLICATION_KEYS: {"submitted_at"},
                 self.OBEYS_START_DATE: True
             },
-            "landings": {
+            "submitted_landings": {
+                self.PRIMARY_KEYS: {"landing_id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"submitted_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "unsubmitted_landings": {
                 self.PRIMARY_KEYS: {"landing_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"landed_at"},
@@ -110,7 +116,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     def expected_primary_keys(self):
         """
-        return a dictionary with key of table name
+        return a dictionary with the key of table name
         and value as a set of primary key fields
         """
         return {table: properties.get(self.PRIMARY_KEYS, set())
@@ -119,7 +125,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     def expected_replication_keys(self):
         """
-        return a dictionary with key of table name
+        return a dictionary with the key of table name
         and value as a set of replication key fields
         """
         return {table: properties.get(self.REPLICATION_KEYS, set())
@@ -128,7 +134,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     def expected_foreign_keys(self):
         """
-        return a dictionary with key of table name
+        return a dictionary with the key of table name
         and value as a set of foreign key fields
         """
         return {table: properties.get(self.FOREIGN_KEYS, set())
@@ -145,7 +151,7 @@ class TypeformBaseTest(unittest.TestCase):
                 for table in self.expected_metadata()}
 
     def expected_replication_method(self):
-        """return a dictionary with key of table name nd value of replication method"""
+        """return a dictionary with the key of table name and value of replication method"""
         return {table: properties.get(self.REPLICATION_METHOD, None)
                 for table, properties
                 in self.expected_metadata().items()}
@@ -163,7 +169,7 @@ class TypeformBaseTest(unittest.TestCase):
     def run_and_verify_check_mode(self, conn_id):
         """
         Run the tap in check mode and verify it succeeds.
-        This should be ran prior to field selection and initial sync.
+        This should run before field selection and initial sync.
         Return the connection id and found catalogs from menagerie.
         """
         # run in check mode
@@ -212,7 +218,7 @@ class TypeformBaseTest(unittest.TestCase):
                                                      test_catalogs,
                                                      select_all_fields=True):
         """
-        Perform table and field selection based off of the streams to select
+        Perform table and field selection based on the streams to select
         set and field selection parameters.
         Verify this results in the expected streams selected and all or no
         fields selected for those streams.
