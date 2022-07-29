@@ -80,7 +80,6 @@ class TestMainWorkflow(unittest.TestCase):
         mock_sync.assert_called_with(mock.ANY, self.mock_config, mock_state, self.mock_catalog)
 
 
-@mock.patch("tap_typeform.Client")
 @mock.patch("tap_typeform.Forms")
 @mock.patch("tap_typeform.LOGGER.fatal")
 class TestValidateFormIds(unittest.TestCase):
@@ -88,29 +87,30 @@ class TestValidateFormIds(unittest.TestCase):
     Test `validate_form_ids` function.
     """
     
-    def test_all_correct_forms(self, mock_logger, mock_forms, mock_client):
+    def test_all_correct_forms(self, mock_logger, mock_forms):
         """
-        Test when proper form ids passed, No error raised.
+        Test when proper form ids are passed, No error raised.
         """
         config = {"forms": "form1,form2"}
         mock_forms.return_value.get_forms.return_value = [[{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
 
-        validate_form_ids(config)
+        validate_form_ids(None, config)
 
-        # Validate no error logger is called
+        # Verify no error logger is called
         self.assertFalse(mock_logger.called)
 
-    def test_no_form_given(self, mock_logger, mock_forms, mock_client):
+    def test_no_form_given(self, mock_logger, mock_forms):
         """
         Test when no forms are given in config, an error is raised with the error logger.
         """
         config = {}
         with self.assertRaises(NoFormsProvidedError):
-            validate_form_ids(config)
-        
+            validate_form_ids(None, config)
+
+        # Verify logger is called with proper error
         mock_logger.called_with("No forms were provided in config")
     
-    def test_mismatch_forms(self, mock_logger, mock_forms, mock_client):
+    def test_mismatch_forms(self, mock_logger, mock_forms):
         """
         Test wrong form ids given in config raise MismatchError.
         """
@@ -118,5 +118,7 @@ class TestValidateFormIds(unittest.TestCase):
         mock_forms.return_value.get_forms.return_value = [[{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
         
         with self.assertRaises(FormMistmatchError):
-            validate_form_ids(config)
+            validate_form_ids(None, config)
+
+        # Verify logger is called with proper error
         mock_logger.called_with("FormMistmatchError: forms {} not returned by API".format({"form4"}))

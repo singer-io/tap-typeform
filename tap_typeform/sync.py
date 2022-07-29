@@ -1,5 +1,7 @@
 import singer
+import pendulum
 from tap_typeform.streams import STREAMS
+
 LOGGER = singer.get_logger()
 
 def _forms_to_list(config, keyword='forms'):
@@ -55,8 +57,12 @@ def sync(client, config, state, catalog):
 
     # Get selected streams, make sure stream dependencies are met
     selected_streams = get_selected_streams(catalog)
-
     streams_to_sync = get_stream_to_sync(selected_streams)
+    LOGGER.info("Selected Streams: %s, Syncing streams: %s", selected_streams, streams_to_sync)
+
+    # Initializing a dictionary to keep track of record count by streams
+    records_count = {stream:0 for stream in STREAMS.keys()}
+
     singer.write_state(state)
     for stream in streams_to_sync:
         stream_obj = STREAMS[stream]()
@@ -65,10 +71,15 @@ def sync(client, config, state, catalog):
             write_schemas(stream, catalog, selected_streams)
 
             stream_obj.sync_obj(client, state, catalog['streams'], config["start_date"],
-                        selected_streams)
+                                selected_streams, records_count)
         elif not stream_obj.parent:
             write_schemas(stream, catalog, selected_streams)
 
             for form in _forms_to_list(config):
+                LOGGER.info('Syncing  stream {} - form: {} start_date: {}'.format(
+                            stream, form, pendulum.parse(config["start_date"]).strftime("%Y-%m-%d %H:%M")))
                 stream_obj.sync_obj(client, state, catalog['streams'], form, config["start_date"],
-                        selected_streams)
+                                    selected_streams, records_count)
+
+    for stream_name, stream_count in records_count.items():
+        LOGGER.info('%s: %d', stream_name, stream_count)

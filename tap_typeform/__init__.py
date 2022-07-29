@@ -16,9 +16,8 @@ class FormMistmatchError(Exception):
 class NoFormsProvidedError(Exception):
     pass
 
-def validate_form_ids(config):
+def validate_form_ids(client, config):
     """Validate the form ids passed in the config"""
-    client = Client(config)
     form_stream = Forms()
 
     if not config.get('forms'):
@@ -40,7 +39,7 @@ def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     config = args.config
     client = Client(config)
-    validate_form_ids(config)
+    validate_form_ids(client, config)
     if args.discover:
         catalog = _discover()
         catalog.dump()

@@ -19,6 +19,14 @@ def get_stream_catalog(stream_name, selected = False):
         ]
     }
 
+records_count = {
+    "forms": 0,
+    "questions": 0,
+    "landings": 0,
+    "answers": 0
+}
+
+@mock.patch("tap_typeform.sync.pendulum")
 @mock.patch("tap_typeform.sync.get_selected_streams")
 @mock.patch("tap_typeform.sync.get_stream_to_sync")
 @mock.patch("tap_typeform.sync.write_schemas")
@@ -31,7 +39,7 @@ class TestSyncFunction(unittest.TestCase):
     config = {'start_date': "START_DATE"}
 
     @mock.patch("tap_typeform.streams.Forms.sync_obj")
-    def test_syncing_form(self, mock_sync_obj, mock_write_schema, mock_sync_streams, mock_selected_streams):
+    def test_syncing_form(self, mock_sync_obj, mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
         """
         Test for `forms` stream, its sync_object is called with proper arguments.
         """
@@ -45,12 +53,12 @@ class TestSyncFunction(unittest.TestCase):
         mock_write_schema.assert_called_with('forms', self.catalog, ['forms'])
 
         # Verify that the expected sync object is called with proper args
-        mock_sync_obj.assert_called_with(mock.ANY, {}, {}, "START_DATE", ['forms'])
+        mock_sync_obj.assert_called_with(mock.ANY, {}, {}, "START_DATE", ['forms'], records_count)
 
     @mock.patch("tap_typeform.streams.Landings.sync_obj")
     @mock.patch("tap_typeform.sync._forms_to_list")
     def test_only_child_selected(self, mock_form_list, mock_sync_obj,
-                                    mock_write_schema, mock_sync_streams, mock_selected_streams):
+                                    mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
         """
         Test for only child selected, parent sync object is called with proper arguments.
         """
@@ -65,12 +73,12 @@ class TestSyncFunction(unittest.TestCase):
         mock_write_schema.assert_called_with('landings', self.catalog, ['answers'])
 
         # Verify that the expected sync object is called with proper args
-        mock_sync_obj.assert_called_with(mock.ANY, {}, {}, 'form1', "START_DATE", ['answers'])
+        mock_sync_obj.assert_called_with(mock.ANY, {}, {}, 'form1', "START_DATE", ['answers'], records_count)
 
     @mock.patch("tap_typeform.streams.Landings.sync_obj")
     @mock.patch("tap_typeform.sync._forms_to_list")
     def test_for_multiple_forms(self, mock_form_list, mock_sync_obj,
-                                mock_write_schema, mock_sync_streams, mock_selected_streams):
+                                mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
         """
         Test for only child selected, parent sync object is called with proper arguments.
         """
@@ -78,9 +86,9 @@ class TestSyncFunction(unittest.TestCase):
         mock_selected_streams.return_value = ['landings']
         mock_sync_streams.return_value = ['landings']
         expected_calls = [
-            mock.call(mock.ANY, {}, {}, 'form1', "START_DATE", ['landings']),
-            mock.call(mock.ANY, {}, {}, 'form2', "START_DATE", ['landings']),
-            mock.call(mock.ANY, {}, {}, 'form3', "START_DATE", ['landings']),
+            mock.call(mock.ANY, {}, {}, 'form1', "START_DATE", ['landings'], records_count),
+            mock.call(mock.ANY, {}, {}, 'form2', "START_DATE", ['landings'], records_count),
+            mock.call(mock.ANY, {}, {}, 'form3', "START_DATE", ['landings'], records_count),
         ]
 
         sync(mock.Mock(), self.config, {}, self.catalog)

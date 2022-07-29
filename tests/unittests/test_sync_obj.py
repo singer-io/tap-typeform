@@ -55,7 +55,7 @@ class TestFullTableStream(unittest.TestCase):
             "fields": records
         }
 
-        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'])
+        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'], {'questions': 0})
 
         # Verify that write_records is called with the expected list of records
         mock_write_records.assert_called_with(
@@ -77,7 +77,7 @@ class TestIncrementalStream(unittest.TestCase):
         """
         Test `sync_obj` method of incremental streams. 
         """
-        client = Client({"token": "", "fetch_uncompleted_forms": False})
+        client = Client({"token": ""})
         test_stream = Landings()
 
         records = [
@@ -89,39 +89,10 @@ class TestIncrementalStream(unittest.TestCase):
             {"items": records,"page_count": 1},
         ]
 
-        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'])
+        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'], {"landings": 0})
 
         # Verify that write_records was called for both the page
         self.assertEqual(mock_write_records.call_count,2)
-
-    @mock.patch("tap_typeform.streams.IncrementalStream.write_records")
-    @mock.patch("tap_typeform.streams.pendulum")
-    def test_uncompleted_forms_sync(self, mock_timestamp, mock_write_records, mock_add_field, mock_request):
-        """
-        Test the uncompleted forms sync for the `Landings` stream.
-        """
-        mock_timestamp.parse.return_value.timestamp.return_value = 0
-        mock_write_records.return_value = ""
-        client = Client({"token": "", "fetch_uncompleted_forms": True})
-        test_stream = Landings()
-
-        records = [
-            {"landing_id": 1, "landed_at": "", "answers": []},
-            {"landing_id": 1, "landed_at": "", "answers": []},
-        ]
-        mock_request.side_effect = [
-            {"items": records,"page_count": 2},
-            {"items": records,"page_count": 1},
-            {"items": records,"page_count": 2},
-            {"items": records,"page_count": 1},
-        ]
-
-        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'])
-
-        # Verify that requests and `write_records` is called 4 times
-        # (2 for completed forms, 2 for uncompleted forms)
-        self.assertEqual(mock_request.call_count,4)
-        self.assertEqual(mock_write_records.call_count,4)
 
     @mock.patch("tap_typeform.streams.singer.write_record")
     @mock.patch("tap_typeform.streams.Stream.sync_child_stream")
@@ -131,6 +102,7 @@ class TestIncrementalStream(unittest.TestCase):
         """
         mock_sync_child.return_value = ""
         test_stream = Landings()
+        test_stream.records_count = {"landings": 0}
 
         records = [
             {"landing_id": 1, "landed_at": "", "answers": []},
@@ -158,6 +130,7 @@ class TestIncrementalStream(unittest.TestCase):
             - If the child is not selected, then `write_records` will not be called
         """
         test_stream = Landings()
+        test_stream.records_count = {"answers": 0}
         child_records = [
             {"field": {"id":1}},
             {"field": {"id":2}},
@@ -186,10 +159,10 @@ class TestFormsStream(unittest.TestCase):
             {"items": [], "page_count": 3},
             {"items": [], "page_count": 3},
         ]
-        client = Client({"token": "", "fetch_uncompleted_forms": True})
+        client = Client({"token": ""})
         test_stream = Forms()
         
-        test_stream.sync_obj(client, {}, catalogs, "", ['forms'])
+        test_stream.sync_obj(client, {}, catalogs, "", ['forms'], {'forms': 0})
 
         # Verify that write records called 3 time
         self.assertEqual(mock_write_records.call_count, 3)

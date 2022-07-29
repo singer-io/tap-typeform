@@ -12,7 +12,7 @@ def get_abs_path(path):
 
 def get_schemas():
     """
-    Load the schema references, prepare metadata for each streams and return schema and metadata for the catalog.
+    Load the schema references, prepare metadata for each stream and return schema and metadata for the catalog.
     """
     schemas = {}
     field_metadata = {}

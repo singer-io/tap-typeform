@@ -26,6 +26,5 @@
     "_sdc_form_id": {
       "type": ["null", "string"]
     }
-  },
-  "key_properties": ["landing_id", "question_id"]
+  }
 }

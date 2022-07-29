@@ -85,12 +85,12 @@ def raise_for_error(response):
                 api_rate_limit_message = ERROR_CODE_EXCEPTION_MAPPING[429]["message"]
                 message = "HTTP-error-code: 429, Error: {}. Please retry after {} seconds".format(api_rate_limit_message, resp_headers.get("Retry-After"))
 
-            # Handling status code 403 specially since response of API does not contain enough information
+            # Handling status code 403 specially since the response of API does not contain enough information
             elif error_code in (403, 401):
                 api_message = ERROR_CODE_EXCEPTION_MAPPING[error_code]["message"]
                 message = "HTTP-error-code: {}, Error: {}".format(error_code, api_message)
             else:
-                # Forming a response message for raising custom exception
+                # Forming a response message for raising a custom exception
                 try:
                     response_json = response.json()
                 except Exception:
@@ -115,7 +115,6 @@ class Client(object):
         self.token = 'Bearer ' + config.get('token')
         self.metric = config.get('metric')
         self.session = requests.Session()
-        self.fetch_uncompleted_forms = config.get('fetch_uncompleted_forms', False)
         self.page_size = MAX_RESPONSES_PAGE_SIZE
         self.form_page_size = FORMS_PAGE_SIZE
         self.get_page_size(config)
@@ -137,7 +136,8 @@ class Client(object):
             if page_size is None:
                 pass
             elif int(float(page_size)) > 0:
-                self.page_size = self.form_page_size = int(float(page_size))
+                self.page_size = int(float(page_size))
+                self.form_page_size = min(self.form_page_size, int(float(page_size)))
             else:
                 raise Exception
         except Exception:
@@ -150,7 +150,7 @@ class Client(object):
                             max_tries=5, factor=2)
     @backoff.on_exception(backoff.expo, (TypeformInternalError, TypeformNotAvailableError, TypeformTooManyError, ChunkedEncodingError),
                             max_tries=3, factor=2)
-    def request(self, url, params=None, **kwargs):
+    def request(self, url, params={}, **kwargs):
 
         if 'headers' not in kwargs:
             kwargs['headers'] = {}
