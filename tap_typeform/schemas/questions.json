@@ -81,8 +81,11 @@
         "options": {
 			"type": ["null", "array"],
 			"items": {
-				"label": {
-					"type": ["null", "string"]
+				"type": ["null", "object"],
+        		"properties": {
+					"label": {
+						"type": ["null", "string"]
+					}
 				}
 			}
         },
@@ -104,22 +107,25 @@
 				"choices": {
 					"type": ["null", "array"],
 					"items": {
-						"attachment": {
-							"type": ["null", "object"],
-							"properties": {
-								"href": {
-									"type": ["null", "string"]
-								},
-								"type": {
-									"type": ["null", "string"]
+						"type": ["null", "object"],
+        				"properties": {
+							"attachment": {
+								"type": ["null", "object"],
+								"properties": {
+									"href": {
+										"type": ["null", "string"]
+									},
+									"type": {
+										"type": ["null", "string"]
+									}
 								}
+							},
+							"label": {
+								"type": ["null", "string"]
+							},
+							"ref": {
+								"type": ["null", "string"]
 							}
-						},
-						"label": {
-							"type": ["null", "string"]
-						},
-						"ref": {
-							"type": ["null", "string"]
 						}
 					}
 				},
@@ -135,7 +141,7 @@
 				"fields": {
 					"type": ["null", "array"],
 					"items": {
-						
+						"type": ["null", "object"]
 					}
 				},
 				"hide_marks": {
@@ -174,19 +180,7 @@
 				},
 				"shape": {
 					"type": ["null", "string"]
-				},
-				"show_button": {
-					"type": ["null", "string"]
-				},
-				"show_labels": {
-					"type": ["null", "string"]
-				},
-				"description": {
-					"type": ["null", "string"]
-				},
-				"description": {
-					"type": ["null", "string"]
-				},
+				}
 			}
         },
 		"required": {
