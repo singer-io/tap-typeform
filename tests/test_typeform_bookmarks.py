@@ -58,7 +58,11 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
 
         new_states = {'bookmarks': dict()}
-        simulated_states = {'forms': {'last_updated_at': '2022-07-22T16:00:47Z'}, 'landings': {'mVn2wE55': {'landed_at': '2022-07-21T00:00:00Z'}, 'xJ8emTTy': {'landed_at': '2022-07-24T16:49:54Z'}}, 'answers': {'mVn2wE55': {'landed_at': '2022-07-21T00:00:00Z'}, 'xJ8emTTy': {'landed_at': '2022-07-24T16:49:54Z'}}}
+        simulated_states = {
+            'forms': {'last_updated_at': '2022-07-22T16:00:47Z'},
+            'landings': {'mVn2wE55': {'landed_at': '2022-07-21T00:00:00Z'}, 'xJ8emTTy': {'landed_at': '2022-07-24T16:49:54Z'}},
+            'answers': {'mVn2wE55': {'landed_at': '2022-07-21T00:00:00Z'}, 'xJ8emTTy': {'landed_at': '2022-07-24T16:49:54Z'}}
+        }
         for stream, new_state in simulated_states.items():
             new_states['bookmarks'][stream] = new_state
         menagerie.set_state(conn_id, new_states)
@@ -133,11 +137,11 @@ class TypeformBookmarks(TypeformBaseTest):
                             # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
                             self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
 
+                            # The `answers` stream respects the parent stream's bookmark, hence skipped this stream.
                             if stream != 'answers':
                                 for record in second_sync_messages:
 
                                     # Verify the second sync records respect the previous (simulated) bookmark value
-                                    # replication_key_value = [record.get(replication_key) if record.get('_sdc_form_id') == form_key]
                                     if record.get('_sdc_form_id') == form_key:
                                         replication_key_value = record.get(replication_key)
                                         self.assertGreaterEqual(replication_key_value, simulated_bookmark_minus_lookback,
@@ -159,8 +163,6 @@ class TypeformBookmarks(TypeformBaseTest):
                                             replication_key_value, first_bookmark_value,
                                             msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
                                         )
-                                    else:
-                                        continue
 
                             # Verify the number of records in the 2nd sync is less than the first
                             self.assertLess(second_sync_count, first_sync_count)
