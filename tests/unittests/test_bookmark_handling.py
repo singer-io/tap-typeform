@@ -12,9 +12,9 @@ class TestGetBookmark(unittest.TestCase):
     state = {
         "bookmarks": {
             "forms": {"last_updated_at": "2020-01-01T00:00:00Z"},
-            "landings": {
-                "form1": {"landed_at": "2021-01-01T00:00:00Z"},
-                "form2": {"landed_at": "2021-02-01T00:00:00Z"},
+            "submitted_landings": {
+                "form1": {"submitted_at": "2021-01-01T00:00:00Z"},
+                "form2": {"submitted_at": "2021-02-01T00:00:00Z"},
             }
         }
     }
@@ -22,8 +22,8 @@ class TestGetBookmark(unittest.TestCase):
     @parameterized.expand([
         (state, "forms", None, "last_updated_at", "2020-01-01T00:00:00Z"),
         ({"bookmarks": {}}, "forms", None, "last_updated_at", "2018-01-01T00:00:00Z"),
-        (state, "landings", "form2", "landed_at", "2021-02-01T00:00:00Z"),
-        (state, "landings", "form3", "landed_at", "2018-01-01T00:00:00Z"),
+        (state, "submitted_landings", "form2", "submitted_at", "2021-02-01T00:00:00Z"),
+        (state, "submitted_landings", "form3", "submitted_at", "2018-01-01T00:00:00Z"),
     ])
     def test_get_bookmark(self, mock_state, stream, form_id, bookmark_key, expected_bookamrk):
         """
@@ -41,13 +41,13 @@ class TestGetMinBookmark(unittest.TestCase):
     state = {
         "bookmarks": {
             "forms": {"last_updated_at": "2020-01-01T00:00:00Z"},
-            "landings": {
-                "form1": {"landed_at": "2021-01-01T00:00:00Z"},
-                "form2": {"landed_at": "2021-02-01T00:00:00Z"},
+            "submitted_landings": {
+                "form1": {"submitted_at": "2021-01-01T00:00:00Z"},
+                "form2": {"submitted_at": "2021-02-01T00:00:00Z"},
             },
             "answers": {
-                "form1": {"landed_at": "2021-03-01T00:00:00Z"},
-                "form2": {"landed_at": "2020-11-01T00:00:00Z"},
+                "form1": {"submitted_at": "2021-03-01T00:00:00Z"},
+                "form2": {"submitted_at": "2020-11-01T00:00:00Z"},
             }
         }
     }
@@ -55,10 +55,10 @@ class TestGetMinBookmark(unittest.TestCase):
     @parameterized.expand([
         (state, 'forms', ['forms'], "2022-06-01T00:00:00Z", None, "last_updated_at", "2020-01-01T00:00:00Z"),
         ({"bookmarks": {}}, 'forms', ['forms'], "2022-06-01T00:00:00Z", None, "last_updated_at", "2018-01-01T00:00:00Z"),
-        (state, 'landings', ['landings'], "2022-06-01T00:00:00Z", "form2", "landed_at", "2021-02-01T00:00:00Z"),
-        (state, 'landings', ['landings', 'answers'], "2022-06-01T00:00:00Z", "form1", "landed_at", "2021-01-01T00:00:00Z"),
-        (state, 'landings', ['landings', 'answers'], "2022-06-01T00:00:00Z", "form2", "landed_at", "2020-11-01T00:00:00Z"),
-        (state, 'landings', ['answers'], "2022-06-01T00:00:00Z", "form1", "landed_at", "2021-03-01T00:00:00Z"),
+        (state, 'submitted_landings', ['submitted_landings'], "2022-06-01T00:00:00Z", "form2", "submitted_at", "2021-02-01T00:00:00Z"),
+        (state, 'submitted_landings', ['submitted_landings', 'answers'], "2022-06-01T00:00:00Z", "form1", "submitted_at", "2021-01-01T00:00:00Z"),
+        (state, 'submitted_landings', ['submitted_landings', 'answers'], "2022-06-01T00:00:00Z", "form2", "submitted_at", "2020-11-01T00:00:00Z"),
+        (state, 'submitted_landings', ['answers'], "2022-06-01T00:00:00Z", "form1", "submitted_at", "2021-03-01T00:00:00Z"),
     ])
     def test_min_bookmark(self, state, stream, selected_streams, bookmark,
                 form_id, bookmark_key, exected_bookmark):
@@ -84,30 +84,30 @@ class TestWriteBookmark(unittest.TestCase):
     }
 
     state2 = {
-        "bookmarks": {"landings": {"form1": {"landed_at": "2020-01-01T00:00:00Z"}}}
+        "bookmarks": {"submitted_landings": {"form1": {"submitted_at": "2020-01-01T00:00:00Z"}}}
     }
     expected_state2 = {
-        "bookmarks": {"landings": {"form1": {"landed_at": "2020-03-01T00:00:00Z"}}}
+        "bookmarks": {"submitted_landings": {"form1": {"submitted_at": "2020-03-01T00:00:00Z"}}}
     }
     state3 = {
-        "bookmarks": {"landings": {"form1": {"landed_at": "2020-01-01T00:00:00Z"}}}
+        "bookmarks": {"submitted_landings": {"form1": {"submitted_at": "2020-01-01T00:00:00Z"}}}
     }
     expected_state3 = {
         "bookmarks": {
-            "landings": {"form1": {"landed_at": "2020-01-01T00:00:00Z"}},
-            "answers": {"form4": {"landed_at": "2020-07-01T00:00:00Z"}}
+            "submitted_landings": {"form1": {"submitted_at": "2020-01-01T00:00:00Z"}},
+            "answers": {"form4": {"submitted_at": "2020-07-01T00:00:00Z"}}
         }
     }
     expected_state4 = {
-        "bookmarks": {"answers": {"form3": {"landed_at": "2020-05-01T00:00:00Z"}}}
+        "bookmarks": {"answers": {"form3": {"submitted_at": "2020-05-01T00:00:00Z"}}}
     }
 
     @parameterized.expand([
         (state1, 'forms', [], None, '2021-10-01T00:00:00Z', state1),
         (state1, 'forms', ['forms'], None, '2020-02-01T00:00:00Z', expected_state1),
         (state2, 'answers', [], "form2", '2021-03-01T00:00:00Z', state2),
-        (state2, 'landings', ['landings'], "form1", '2020-03-01T00:00:00Z', expected_state2),
-        (state3, 'landings', ['answers'], "form4", '2020-07-01T00:00:00Z', expected_state3),
+        (state2, 'submitted_landings', ['submitted_landings'], "form1", '2020-03-01T00:00:00Z', expected_state2),
+        (state3, 'submitted_landings', ['answers'], "form4", '2020-07-01T00:00:00Z', expected_state3),
         ({}, 'answers', ['answers'], "form3", '2020-05-01T00:00:00Z', expected_state4),
     ])
     def test_write_bookmark(self, state, stream, selected_streams, form_id, bookmark_value, expected_state):

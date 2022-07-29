@@ -219,9 +219,9 @@ class Questions(FullTableStream):
             "question_id": record['id']
             })
 
-class Landings(IncrementalStream):
-    tap_stream_id = 'landings'
-    replication_keys = ['landed_at']
+class SubmittedLandings(IncrementalStream):
+    tap_stream_id = 'submitted_landings'
+    replication_keys = ['submitted_at']
     key_properties = ['landing_id']
     endpoint = 'forms/{}/responses'
     children = ['answers']
@@ -244,12 +244,34 @@ class Landings(IncrementalStream):
                 "hidden": json.dumps(record["hidden"]) if "hidden" in record else ""
         })
 
+class UnsubmittedLandings(IncrementalStream):
+    tap_stream_id = 'unsubmitted_landings'
+    replication_keys = ['landed_at']
+    key_properties = ['landing_id']
+    endpoint = 'forms/{}/responses'
+    params = {
+                'since': '',
+                'page_size': '',
+                'completed': False
+            }
+    data_key = 'items'
+
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        record.update({
+                "_sdc_form_id": additional_data["_sdc_form_id"],
+                "user_agent": record["metadata"]["user_agent"],
+                "platform": record["metadata"]["platform"],
+                "referer": record["metadata"]["referer"],
+                "network_id": record["metadata"]["network_id"],
+                "browser": record["metadata"]["browser"],
+        })
+
 
 class Answers(IncrementalStream):
     tap_stream_id = 'answers'
-    replication_keys = ['landed_at']
+    replication_keys = ['submitted_at']
     key_properties = ['landing_id', 'question_id']
-    parent = 'landings'
+    parent = 'submitted_landings'
     data_key = 'answers'
 
     def add_fields_at_1st_level(self, record, additional_data = {}):
@@ -269,13 +291,14 @@ class Answers(IncrementalStream):
             "type": record.get('field',{}).get('type'),
             "ref": record.get('field',{}).get('ref'),
             "data_type": data_type,
-            "landed_at": additional_data.get('landed_at'),
+            "submitted_at": additional_data.get('submitted_at'),
             "answer": answer_value
         })
 
 STREAMS = {
     "forms": Forms,
     "questions": Questions,
-    "landings": Landings,
+    "submitted_landings": SubmittedLandings,
+    "unsubmitted_landings": UnsubmittedLandings,
     "answers": Answers,
 }
