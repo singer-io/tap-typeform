@@ -1,38 +1,10 @@
 import unittest
 from unittest import mock
+from parameterized import parameterized
 
 import requests
-import tap_typeform.http as client_
-
-
-
-def mocked_session(*args, **kwargs):
-    class Mocksession:
-        def __init__(self, json_data, status_code, content, headers, raise_error):
-            self.text = json_data
-            self.status_code = status_code
-            self.raise_error = raise_error
-            if headers:
-                self.headers = headers
-
-        def raise_for_status(self):
-            if not self.raise_error:
-                return self.status_code
-
-            raise requests.HTTPError("sample message")
-
-        def json(self):
-            return self.text
-
-    arguments_to_session = args[0]
-
-    json_data = arguments_to_session[0]
-    status_code = arguments_to_session[1]
-    content = arguments_to_session[2]
-    headers = arguments_to_session[3]
-    raise_error = arguments_to_session[4]
-    return Mocksession(json_data, status_code, content, headers, raise_error)
-
+from tap_typeform.client import ERROR_CODE_EXCEPTION_MAPPING
+import tap_typeform.client as client_
 
 class Mockresponse:
     def __init__(self, resp, status_code, content=[], headers=None, raise_error=False):
@@ -88,158 +60,71 @@ def mocked_internalservererror_500_error(*args, **kwargs):
     return Mockresponse(json_decode_str, 500, raise_error=True)
 
 
-def mocked_notimplemented_501_error(*args, **kwargs):
-    json_decode_str = {}
-
-    return Mockresponse(json_decode_str, 501, raise_error=True)
-
-
 def mocked_not_available_503_error(*args, **kwargs):
     json_decode_str = {}
 
     return Mockresponse(json_decode_str, 503, raise_error=True)
 
+@mock.patch('tap_typeform.client.requests.Session.get')
+class TestClientErrorHandling(unittest.TestCase):
+    """
+    Test handling of 4xx and 5xx errors with proper error message.
+    """
 
-@mock.patch('requests.Session.send', side_effect=mocked_session)
-class TestClientExceptionHandling(unittest.TestCase):
-    """
-    Test cases to verify if the exceptions are handled as expected while communicating with Xero Environment 
-    """
     endpoint = "forms"
 
-    @mock.patch('requests.Request', side_effect=mocked_badrequest_400_error)
-    def test_badrequest_400_error(self, mocked_session, mocked_badrequest_400_error):
+    @parameterized.expand([
+        (client_.TypeformBadRequestError, mocked_badrequest_400_error, 400),
+        (client_.TypeformUnauthorizedError, mocked_unauthorized_401_error, 401),
+        (client_.TypeformForbiddenError, mocked_forbidden_403_exception, 403),
+        (client_.TypeformNotFoundError, mocked_notfound_404_error, 404),
+        (client_.TypeformTooManyError, mocked_failed_429_request, 429),
+        (client_.TypeformInternalError, mocked_internalservererror_500_error, 500),
+        (client_.TypeformNotAvailableError, mocked_not_available_503_error, 503),
+    ])
+    def test_error_handling(self, mock_session, error, mock_response, err_code):
+        """
+        Test error is raised with expected error message.
+        """
         config = {'token': '123'}
         client = client_.Client(config)
         url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformBadRequestError as e:
-            expected_error_message = "HTTP-error-code: 400, Error: A validation exception has occurred."
-
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
-
-
-    @mock.patch('requests.Request', side_effect=mocked_unauthorized_401_error)
-    def test_unauthorized_401_error(self, mocked_session, mocked_unauthorized_401_error):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformUnauthorizedError as e:
-            expected_error_message = "HTTP-error-code: 401, Error: Invalid authorization credentials."
-
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
-
-
-    @mock.patch('requests.Request', side_effect=mocked_forbidden_403_exception)
-    def test_forbidden_403_exception(self, mocked_session, mocked_forbidden_403_exception):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformForbiddenError as e:
-            expected_error_message = "HTTP-error-code: 403, Error: User doesn't have permission to access the resource."
-
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
-
-
-    @mock.patch('requests.Request', side_effect=mocked_notfound_404_error)
-    def test_notfound_404_error(self, mocked_session, mocked_notfound_404_error):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformNotFoundError as e:
-            expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
-
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
-
-
-    @mock.patch('requests.Request', side_effect=mocked_internalservererror_500_error)
-    def test_internalservererror_500_error(self, mocked_session, mocked_internalservererror_500_error):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformInternalError as e:
-            expected_error_message = "HTTP-error-code: 500, Error: An unhandled error with the Typeform API. Contact the Typeform API team if problems persist."
-
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
-
-
-    @mock.patch('requests.Request', side_effect=mocked_not_available_503_error)
-    def test_not_available_503_error(self, mocked_session, mocked_not_available_503_error):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformNotAvailableError as e:
-            expected_error_message = "HTTP-error-code: 503, Error: API service is currently unavailable."
-
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
-
-
-    @mock.patch('requests.Request', side_effect=mocked_failed_429_request)
-    def test_too_many_requests_429(self, mocked_session, mocked_failed_429_request):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except client_.TypeformTooManyError as e:
-            expected_error_message = "HTTP-error-code: 429, Error: The API rate limit for your organisation/application pairing has been exceeded"
+        mock_session.side_effect=mock_response
+        error_message = ERROR_CODE_EXCEPTION_MAPPING.get(err_code).get("message")
+        
+        expected_error_message = "HTTP-error-code: {}, Error: {}".format(err_code, error_message)
+        with self.assertRaises(error) as e:
+            client.request(url)
             
-            # Verifying the message formed for the custom exception
-            self.assertEqual(str(e), expected_error_message)
-            pass
+        # Verifying the message formed for the custom exception
+        self.assertEqual(str(e.exception), expected_error_message)
 
+@mock.patch('tap_typeform.client.requests.Session.get')
+class TestClientBackoffHandling(unittest.TestCase):
+    """
+    Test handling of backoff for Timeout, ConnectionError, ChunkEncoding, 5xx, 429 errors.
+    """
 
-    @mock.patch('requests.Request', side_effect=mocked_failed_429_request)
-    def test_too_many_requests_429_backoff_behavior(self, mocked_session, mocked_failed_429_request):
+    endpoint = "forms"
+
+    @parameterized.expand([
+        (requests.exceptions.ConnectionError, requests.exceptions.ConnectionError, 5),
+        (requests.exceptions.Timeout, requests.exceptions.Timeout, 5),
+        (requests.exceptions.ChunkedEncodingError, requests.exceptions.ChunkedEncodingError, 3),
+        (client_.TypeformInternalError, mocked_internalservererror_500_error, 3),
+        (client_.TypeformNotAvailableError, mocked_not_available_503_error, 3),
+        (client_.TypeformTooManyError, mocked_failed_429_request, 3),
+    ])
+    def test_back_off_error_handling(self, mock_session, error,mock_response, expected_call_count):
+        """
+        Test handling of backoff that function is retrying expected times
+        """
+        mock_session.side_effect = mock_response
         config = {'token': '123'}
         client = client_.Client(config)
         url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except (requests.HTTPError, client_.TypeformTooManyError) as e:
-            pass
+        with self.assertRaises(error):
+            client.request(url)
 
-        #Verify daily limit should not backoff
-        self.assertEqual(mocked_failed_429_request.call_count, 3)
-        self.assertEqual(mocked_session.call_count, 3)
-
-
-    @mock.patch('requests.Request', side_effect=mocked_internalservererror_500_error)
-    def test_internalservererror_500_backoff_behaviour(self, mocked_session, mocked_internalservererror_500_error):
-        config = {'token': '123'}
-        client = client_.Client(config)
-        url = client.build_url(self.endpoint)
-        try:
-            client.request('GET', url)
-        except (requests.HTTPError, client_.TypeformInternalError) as e:
-            pass
-
-        self.assertEqual(mocked_internalservererror_500_error.call_count, 3)
-        self.assertEqual(mocked_session.call_count, 3)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        # Verify `client.requests` backoff expected times
+        self.assertEqual(mock_session.call_count, expected_call_count)

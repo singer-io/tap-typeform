@@ -1,51 +1,41 @@
 {
   "type": ["null", "object"],
-  "selected": true,
   "additionalProperties": false,
   "properties": {
     "landing_id": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"] 
     },
     "token": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "landed_at": {
       "type": ["null", "string"],
-      "format": "date-time",
-      "selected": true
+      "format": "date-time"
     },
     "submitted_at": {
       "type": ["null", "string"],
-      "format": "date-time",
-      "selected": true
+      "format": "date-time"
     },
     "user_agent": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "platform": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "referer": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "network_id": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "browser": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "hidden": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
+    },
+    "_sdc_form_id": {
+      "type": ["null", "string"]
     }
-  },
-  "key_properties": ["landing_id"],
-  "bookmark_properties": ["submitted_at"]
+  }
 }

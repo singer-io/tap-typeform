@@ -1,36 +1,30 @@
 {
   "type": ["null", "object"],
-  "selected": true,
   "additionalProperties": false,
   "properties": {
     "landing_id": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "question_id": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "type": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "ref": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "data_type": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "landed_at": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
     },
     "answer": {
-      "type": ["null", "string"],
-      "selected": true
+      "type": ["null", "string"]
+    },
+    "_sdc_form_id": {
+      "type": ["null", "string"]
     }
-  },
-  "key_properties": ["landing_id", "question_id"]
+  }
 }
