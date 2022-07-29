@@ -84,7 +84,7 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
         ### First Sync
         ##########################################################################
-        self.start_date_1 = self.get_properties().get("start_date")
+        self.start_date_1 = "2022-07-20T00:00:00Z"
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=3)
 
         self.start_date = self.start_date_1
@@ -107,7 +107,16 @@ class TypeformBookmarks(TypeformBaseTest):
         ##########################################################################
 
         new_states = {'bookmarks': dict()}
-        simulated_states = self.calculated_states_by_stream(first_sync_bookmarks)
+        simulated_states = {
+            'forms': {'last_updated_at': '2022-07-22T16:00:47Z'},
+            'landings': {'mVn2wE55': '2022-07-21T10:32:15.000000Z',
+                        'xJ8emTTy': '2022-07-24T15:49:54Z',
+                        'cfyTOGxc':  '2022-07-24T16:49:54Z'},
+            'answers': {'mVn2wE55': '2022-07-21T00:00:00Z',
+                        'xJ8emTTy': '2022-07-24T16:49:54Z',
+                        'cfyTOGxc': '2022-07-24T16:49:54Z',
+                    }
+        }
         for stream, new_state in simulated_states.items():
             new_states['bookmarks'][stream] = new_state
         menagerie.set_state(conn_id, new_states)
