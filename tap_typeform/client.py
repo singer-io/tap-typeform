@@ -109,6 +109,9 @@ def raise_for_error(response):
             raise TypeformError(error) from None
 
 class Client(object):
+    """
+    The client class is used for making REST calls to the Github API.
+    """
     BASE_URL = 'https://api.typeform.com'
 
     def __init__(self, config):
@@ -137,26 +140,33 @@ class Client(object):
                 pass
             elif int(float(page_size)) > 0:
                 self.page_size = int(float(page_size))
-                self.form_page_size = min(self.form_page_size, int(float(page_size)))
+                self.form_page_size = min(self.form_page_size, self.page_size)
             else:
                 raise Exception
         except Exception:
             raise Exception(f"The entered page size is invalid, it should be a valid integer.") from None
 
     def build_url(self, endpoint):
+        """
+        Returns full URL for a given endpoint.
+        """
         return f"{self.BASE_URL}/{endpoint}"
 
     @backoff.on_exception(backoff.expo,(Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
-                            max_tries=5, factor=2)
+                            max_tries=5, factor=2, jitter=None)
     @backoff.on_exception(backoff.expo, (TypeformInternalError, TypeformNotAvailableError, TypeformTooManyError, ChunkedEncodingError),
                             max_tries=3, factor=2)
     def request(self, url, params={}, **kwargs):
+        """
+        Call rest API and return the response in case of status code 200.
+        """
 
         if 'headers' not in kwargs:
             kwargs['headers'] = {}
         if self.token:
             kwargs['headers']['Authorization'] = self.token
 
+        LOGGER.info("URL: %s and Params: %s", url, params)
         response = self.session.get(url, params=params, headers=kwargs['headers'], timeout=self.request_timeout)
         if response.status_code != 200:
             raise_for_error(response)

@@ -58,7 +58,8 @@ def sync(client, config, state, catalog):
     # Get selected streams, make sure stream dependencies are met
     selected_streams = get_selected_streams(catalog)
     streams_to_sync = get_stream_to_sync(selected_streams)
-    LOGGER.info("Selected Streams: %s, Syncing streams: %s", selected_streams, streams_to_sync)
+    LOGGER.info("Selected Streams: %s", selected_streams)
+    LOGGER.info("Syncing Streams: %s", streams_to_sync)
 
     # Initializing a dictionary to keep track of record count by streams
     records_count = {stream:0 for stream in STREAMS.keys()}
@@ -67,6 +68,8 @@ def sync(client, config, state, catalog):
     for stream in streams_to_sync:
         stream_obj = STREAMS[stream]()
 
+        # Calling `forms` sync object separately as it does not take called once
+        # independent of form ids
         if stream == 'forms' and stream in selected_streams:
             write_schemas(stream, catalog, selected_streams)
 
@@ -76,8 +79,7 @@ def sync(client, config, state, catalog):
             write_schemas(stream, catalog, selected_streams)
 
             for form in _forms_to_list(config):
-                LOGGER.info('Syncing  stream {} - form: {} start_date: {}'.format(
-                            stream, form, pendulum.parse(config["start_date"]).strftime("%Y-%m-%d %H:%M")))
+
                 stream_obj.sync_obj(client, state, catalog['streams'], form, config["start_date"],
                                     selected_streams, records_count)
 

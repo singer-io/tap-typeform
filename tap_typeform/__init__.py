@@ -31,6 +31,8 @@ def validate_form_ids(client, config):
 
     if len(mismatched_forms) > 0:
         LOGGER.fatal(f"FormMistmatchError: forms {mismatched_forms} not returned by API")
+        # Raise an error if any form-id from config is not matching
+        # from ids from API response
         raise FormMistmatchError
 
 

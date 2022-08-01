@@ -175,13 +175,11 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
     """
 
     answer_record = {
-        "type": "text",
         "field": {
             "id": "asdf",
             "type": "short_text",
             "ref": ""
-        },
-        "text": ""
+        }
     }
     answer_expected_record = {
         "field": {
@@ -193,10 +191,8 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "question_id": "asdf",
         "type": "short_text",
         "ref": "",
-        "data_type": "text",
         "submitted_at": "",
         "answer": "",
-        "text": "",
         "_sdc_form_id": "form1"
     }
 
@@ -246,7 +242,9 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "form_id": "form1",
     }
     @parameterized.expand([
-        (Answers, answer_record, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, answer_expected_record),
+        (Answers, {**answer_record, "type": "text", "text": "text1"}, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, {**answer_expected_record, "answer": "text1", "data_type": "text", "text": "text1"}),
+        (Answers, {**answer_record, "type": "number", "number": 1000}, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, {**answer_expected_record, "answer": "1000", "data_type": "number", "number": 1000}),
+        (Answers, {**answer_record, "type": "choice", "choice": {}}, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, {**answer_expected_record, "answer": "{}", "data_type": "choice", "choice": {}}),
         (SubmittedLandings, sub_landings_record, {"_sdc_form_id": "form1"}, sub_landings_exp_record),
         (UnsubmittedLandings, unsub_landings_record, {"_sdc_form_id": "form1"}, unsub_landings_exp_record),
         (Questions, que_record, {"form_id": "form1"}, que_expected_record),
