@@ -3,6 +3,15 @@ import tap_tester.runner as runner
 import tap_tester.menagerie as menagerie
 from base import TypeformBaseTest
 
+# As we are not able to generate following fields by Github UI, so removed it form expectation list.
+KNOWN_MISSING_FIELDS = {
+    'questions': {
+        'name',
+        'field_type',
+        'required',
+        'options'
+    }
+}
 
 class TypeformAllFieldsTest(TypeformBaseTest):
     """Ensure running the tap with all streams and fields selected results in the replication of all fields."""
@@ -66,6 +75,7 @@ class TypeformAllFieldsTest(TypeformBaseTest):
                 self.assertTrue(expected_automatic_keys.issubset(
                     expected_all_keys), msg='{} is not in "expected_all_keys"'.format(expected_automatic_keys-expected_all_keys))
 
+                expected_all_keys = expected_all_keys - KNOWN_MISSING_FIELDS.get(stream, set())
                 messages = synced_records.get(stream)
                 # Collect actual values
                 actual_all_keys = set()
@@ -74,4 +84,6 @@ class TypeformAllFieldsTest(TypeformBaseTest):
                         actual_all_keys.update(message['data'].keys())
 
                 # Verify all fields for each stream are replicated
+                self.assertGreater(len(expected_all_keys), len(expected_automatic_keys))
+                self.assertTrue(expected_automatic_keys.issubset(expected_all_keys), msg=f'{expected_automatic_keys-expected_all_keys} is not in "expected_all_keys"')
                 self.assertSetEqual(expected_all_keys, actual_all_keys)
