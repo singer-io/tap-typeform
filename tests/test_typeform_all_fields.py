@@ -3,7 +3,7 @@ import tap_tester.runner as runner
 import tap_tester.menagerie as menagerie
 from base import TypeformBaseTest
 
-# As we are not able to generate following fields by Github UI, so removed it form expectation list.
+# As we are not able to generate following fields by Typeform UI, so removed them from expectation list.
 KNOWN_MISSING_FIELDS = {
     'questions': {
         'name',
