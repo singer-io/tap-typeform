@@ -136,12 +136,6 @@ class TypeformBookmarks(TypeformBaseTest):
                             simulated_bookmark_value = new_states['bookmarks'][stream][form_key][replication_key]
                             simulated_bookmark_minus_lookback = simulated_bookmark_value
 
-                            # Verify the first sync sets a bookmark of the expected form
-                            self.assertIsNotNone(first_bookmark_key_value)
-
-                            # Verify the second sync sets a bookmark of the expected form
-                            self.assertIsNotNone(second_bookmark_key_value)
-
                             # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
                             self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
 
@@ -184,41 +178,36 @@ class TypeformBookmarks(TypeformBaseTest):
                         simulated_bookmark_value = new_states['bookmarks'][stream][replication_key]
                         simulated_bookmark_minus_lookback = simulated_bookmark_value
 
-                    # Verify the first sync sets a bookmark of the expected form
-                    self.assertIsNotNone(first_bookmark_key_value)
-
-                    # Verify the second sync sets a bookmark of the expected form
-                    self.assertIsNotNone(second_bookmark_key_value)
-
-                    # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
-                    self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
-
-
-                    if stream != 'answers':
                         for record in second_sync_messages:
 
-                            if record.get('_sdc_form_id') == form_key:
-                                # Verify the second sync records respect the previous (simulated) bookmark value
-                                replication_key_value = record.get(replication_key)
-                                self.assertGreaterEqual(replication_key_value, simulated_bookmark_minus_lookback,
-                                                        msg="Second sync records do not respect the previous bookmark.")
+                            # Verify the second sync records respect the previous (simulated) bookmark value
+                            replication_key_value = record.get(replication_key)
+                            self.assertGreaterEqual(replication_key_value, simulated_bookmark_minus_lookback,
+                                                    msg="Second sync records do not respect the previous bookmark.")
 
-                                # Verify the second sync bookmark value is the max replication key value for a given stream
-                                self.assertLessEqual(
-                                    replication_key_value, second_bookmark_value_utc,
-                                    msg="Second sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
-                                )
+                            # Verify the second sync bookmark value is the max replication key value for a given stream
+                            self.assertLessEqual(
+                                replication_key_value, second_bookmark_value_utc,
+                                msg="Second sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
+                            )
 
                         for record in first_sync_messages:
 
-                            if record.get('_sdc_form_id') == form_key:
-                                # Verify the first sync bookmark value is the max replication key value for a given stream
-                                replication_key_value = record.get(replication_key)
-                                self.assertLessEqual(
-                                    replication_key_value, first_bookmark_value_utc,
-                                    msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
-                                )
+                            # Verify the first sync bookmark value is the max replication key value for a given stream
+                            replication_key_value = record.get(replication_key)
+                            self.assertLessEqual(
+                                replication_key_value, first_bookmark_value_utc,
+                                msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
+                            )
 
+                    # Verify the first sync sets a bookmark of the expected form
+                    self.assertIsNotNone(first_bookmark_value)
+
+                    # Verify the second sync sets a bookmark of the expected form
+                    self.assertIsNotNone(second_bookmark_value)
+
+                    # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
+                    self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
 
                     # Verify the number of records in the 2nd sync is less then the first
                     self.assertLess(second_sync_count, first_sync_count)
