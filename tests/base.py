@@ -8,7 +8,7 @@ from datetime import timedelta
 from datetime import datetime as dt
 
 from singer import get_logger
-from tap_tester import connections, menagerie, runner
+from tap_tester import connections, menagerie, runner, LOGGER
 
 
 class TypeformBaseTest(unittest.TestCase):
@@ -32,7 +32,6 @@ class TypeformBaseTest(unittest.TestCase):
     OBEYS_START_DATE = "obey-start-date"
     PAGE_SIZE = 1000
     FORM_PAGE_SIZE = 200
-    LOGGER = get_logger()
 
     start_date = '2021-05-10T00:00:00Z'
 
