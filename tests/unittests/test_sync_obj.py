@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 from parameterized import parameterized
 from tap_typeform.client import Client
-from tap_typeform.streams import Forms, Landings, Questions, Answers
+from tap_typeform.streams import Forms, SubmittedLandings, Questions, Answers, UnsubmittedLandings
 
 def get_stream_catalog(stream_name, selected = False):
     """
@@ -24,7 +24,8 @@ def get_stream_catalog(stream_name, selected = False):
 
 catalogs = [
     get_stream_catalog("questions", True),
-    get_stream_catalog("landings", True),
+    get_stream_catalog("submitted_landings", True),
+    get_stream_catalog("unsubmitted_landings", True),
     get_stream_catalog("answers", True),
     get_stream_catalog("forms", True),
 ]
@@ -66,7 +67,7 @@ class TestFullTableStream(unittest.TestCase):
 
 
 @mock.patch("tap_typeform.client.Client.request")
-@mock.patch("tap_typeform.streams.Landings.add_fields_at_1st_level")
+@mock.patch("tap_typeform.streams.SubmittedLandings.add_fields_at_1st_level")
 class TestIncrementalStream(unittest.TestCase):
     """
     Test incremental streams methods.
@@ -78,18 +79,18 @@ class TestIncrementalStream(unittest.TestCase):
         Test `sync_obj` method of incremental streams. 
         """
         client = Client({"token": ""})
-        test_stream = Landings()
+        test_stream = SubmittedLandings()
 
         records = [
-            {"landing_id": 1, "landed_at": "", "answers": []},
-            {"landing_id": 1, "landed_at": "", "answers": []},
+            {"landing_id": 1, "submitted_at": "", "answers": []},
+            {"landing_id": 1, "submitted_at": "", "answers": []},
         ]
         mock_request.side_effect = [
             {"items": records,"page_count": 2},
             {"items": records,"page_count": 1},
         ]
 
-        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'], {"landings": 0})
+        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'], {"submitted_landings": 0})
 
         # Verify that write_records was called for both the page
         self.assertEqual(mock_write_records.call_count,2)
@@ -101,16 +102,16 @@ class TestIncrementalStream(unittest.TestCase):
         Test `write_records` method of incremental streams.
         """
         mock_sync_child.return_value = ""
-        test_stream = Landings()
-        test_stream.records_count = {"landings": 0}
+        test_stream = SubmittedLandings()
+        test_stream.records_count = {"submitted_landings": 0}
 
         records = [
-            {"landing_id": 1, "landed_at": "", "answers": []},
-            {"landing_id": 2, "landed_at": "", "answers": []},
-            {"landing_id": 3, "landed_at": ""},
+            {"landing_id": 1, "submitted_at": "", "answers": []},
+            {"landing_id": 2, "submitted_at": "", "answers": []},
+            {"landing_id": 3, "submitted_at": ""},
         ]
 
-        test_stream.write_records(records, catalogs, ['answers', 'landings'],"form1", "", {}, "")
+        test_stream.write_records(records, catalogs, ['answers', 'submitted_landings'],"form1", "", {}, "")
 
         # Verify write record was called for all records
         self.assertEqual(mock_write_record.call_count,3)
@@ -129,14 +130,14 @@ class TestIncrementalStream(unittest.TestCase):
             - If the child is selected, then `write_records` will be called
             - If the child is not selected, then `write_records` will not be called
         """
-        test_stream = Landings()
+        test_stream = SubmittedLandings()
         test_stream.records_count = {"answers": 0}
         child_records = [
             {"field": {"id":1}},
             {"field": {"id":2}},
         ]
 
-        record = {"landing_id": 1, "landed_at": "", "answers": child_records}
+        record = {"landing_id": 1, "submitted_at": "", "answers": child_records}
 
         test_stream.sync_child_stream(record, catalogs, {}, selected_streams, "form1", "", "")
 
@@ -174,13 +175,11 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
     """
 
     answer_record = {
-        "type": "text",
         "field": {
             "id": "asdf",
             "type": "short_text",
             "ref": ""
-        },
-        "text": ""
+        }
     }
     answer_expected_record = {
         "field": {
@@ -192,14 +191,12 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "question_id": "asdf",
         "type": "short_text",
         "ref": "",
-        "data_type": "text",
-        "landed_at": "",
+        "submitted_at": "",
         "answer": "",
-        "text": "",
         "_sdc_form_id": "form1"
     }
 
-    landing_record = {
+    sub_landings_record = {
         "metadata": {
             "user_agent": "mozila",
             "platform": "other",
@@ -208,14 +205,32 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
             "browser": "default"
         }
     }
-    landing_expected_record = {
-        **landing_record,
+    sub_landings_exp_record = {
+        **sub_landings_record,
         "user_agent": "mozila",
         "platform": "other",
         "referer": "",
         "network_id": "",
         "browser": "default",
         "hidden": "",
+        "_sdc_form_id": "form1"
+    }
+    unsub_landings_record = {
+        "metadata": {
+            "user_agent": "mozila",
+            "platform": "other",
+            "referer": "",
+            "network_id": "",
+            "browser": "default"
+        }
+    }
+    unsub_landings_exp_record = {
+        **unsub_landings_record,
+        "user_agent": "mozila",
+        "platform": "other",
+        "referer": "",
+        "network_id": "",
+        "browser": "default",
         "_sdc_form_id": "form1"
     }
     que_record= {
@@ -227,8 +242,11 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "form_id": "form1",
     }
     @parameterized.expand([
-        (Answers, answer_record, {"landing_id": 1,"landed_at": "", "_sdc_form_id": "form1"}, answer_expected_record),
-        (Landings, landing_record, {"_sdc_form_id": "form1"}, landing_expected_record),
+        (Answers, {**answer_record, "type": "text", "text": "text1"}, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, {**answer_expected_record, "answer": "text1", "data_type": "text", "text": "text1"}),
+        (Answers, {**answer_record, "type": "number", "number": 1000}, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, {**answer_expected_record, "answer": "1000", "data_type": "number", "number": 1000}),
+        (Answers, {**answer_record, "type": "choice", "choice": {}}, {"landing_id": 1, "submitted_at": "", "_sdc_form_id": "form1"}, {**answer_expected_record, "answer": "{}", "data_type": "choice", "choice": {}}),
+        (SubmittedLandings, sub_landings_record, {"_sdc_form_id": "form1"}, sub_landings_exp_record),
+        (UnsubmittedLandings, unsub_landings_record, {"_sdc_form_id": "form1"}, unsub_landings_exp_record),
         (Questions, que_record, {"form_id": "form1"}, que_expected_record),
     ])
     def test_add_field(self, stream, record, aditional_data, expected_record):
@@ -240,4 +258,5 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         test_stream.add_fields_at_1st_level(record, aditional_data)
 
         # Verify that record updates as expected
+
         self.assertEqual(record, expected_record)

@@ -29,10 +29,14 @@ class TypeformPaginationTest(TypeformBaseTest):
         This requires we ensure more than 1 page of data exists at all times for any given stream.
         • Verify by pks that the data replicated matches the data we expect.
         """
-        expected_streams = self.expected_streams() - {'questions', 'answers'}
+
+        # Reduce page_size to 2 as unable to generate more data.
+        expected_streams_1 = {'unsubmitted_landings'}
+        self.run_test(expected_streams_1, page_size=2)
 
         # Reduce page_size to 5 as unable to generate more data.
-        self.run_test(expected_streams, page_size=5)
+        expected_streams_2 = self.expected_streams() - expected_streams_1 - {'questions', 'answers'}
+        self.run_test(expected_streams_2, page_size=5)
 
     def run_test(self, expected_streams, page_size):
 

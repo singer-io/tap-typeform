@@ -22,7 +22,8 @@ def get_stream_catalog(stream_name, selected = False):
 records_count = {
     "forms": 0,
     "questions": 0,
-    "landings": 0,
+    "submitted_landings": 0,
+    "unsubmitted_landings": 0,
     "answers": 0
 }
 
@@ -55,7 +56,7 @@ class TestSyncFunction(unittest.TestCase):
         # Verify that the expected sync object is called with proper args
         mock_sync_obj.assert_called_with(mock.ANY, {}, {}, "START_DATE", ['forms'], records_count)
 
-    @mock.patch("tap_typeform.streams.Landings.sync_obj")
+    @mock.patch("tap_typeform.streams.SubmittedLandings.sync_obj")
     @mock.patch("tap_typeform.sync._forms_to_list")
     def test_only_child_selected(self, mock_form_list, mock_sync_obj,
                                     mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
@@ -64,18 +65,18 @@ class TestSyncFunction(unittest.TestCase):
         """
         mock_form_list.return_value = ['form1']
         mock_selected_streams.return_value = ['answers']
-        mock_sync_streams.return_value = ['landings', 'answers']
+        mock_sync_streams.return_value = ['submitted_landings', 'answers']
 
         sync(mock.Mock(), self.config, {}, self.catalog)
 
         # Verify that write schema is called once for one selected stream
         self.assertEqual(mock_write_schema.call_count, 1)
-        mock_write_schema.assert_called_with('landings', self.catalog, ['answers'])
+        mock_write_schema.assert_called_with('submitted_landings', self.catalog, ['answers'])
 
         # Verify that the expected sync object is called with proper args
         mock_sync_obj.assert_called_with(mock.ANY, {}, {}, 'form1', "START_DATE", ['answers'], records_count)
 
-    @mock.patch("tap_typeform.streams.Landings.sync_obj")
+    @mock.patch("tap_typeform.streams.SubmittedLandings.sync_obj")
     @mock.patch("tap_typeform.sync._forms_to_list")
     def test_for_multiple_forms(self, mock_form_list, mock_sync_obj,
                                 mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
@@ -83,19 +84,19 @@ class TestSyncFunction(unittest.TestCase):
         Test for only child selected, parent sync object is called with proper arguments.
         """
         mock_form_list.return_value = ['form1', 'form2', 'form3']
-        mock_selected_streams.return_value = ['landings']
-        mock_sync_streams.return_value = ['landings']
+        mock_selected_streams.return_value = ['submitted_landings']
+        mock_sync_streams.return_value = ['submitted_landings']
         expected_calls = [
-            mock.call(mock.ANY, {}, {}, 'form1', "START_DATE", ['landings'], records_count),
-            mock.call(mock.ANY, {}, {}, 'form2', "START_DATE", ['landings'], records_count),
-            mock.call(mock.ANY, {}, {}, 'form3', "START_DATE", ['landings'], records_count),
+            mock.call(mock.ANY, {}, {}, 'form1', "START_DATE", ['submitted_landings'], records_count),
+            mock.call(mock.ANY, {}, {}, 'form2', "START_DATE", ['submitted_landings'], records_count),
+            mock.call(mock.ANY, {}, {}, 'form3', "START_DATE", ['submitted_landings'], records_count),
         ]
 
         sync(mock.Mock(), self.config, {}, self.catalog)
 
         # Verify that write schema is called once for one selected stream
         self.assertEqual(mock_write_schema.call_count, 1)
-        mock_write_schema.assert_called_with('landings', self.catalog, ['landings'])
+        mock_write_schema.assert_called_with('submitted_landings', self.catalog, ['submitted_landings'])
         
         # Verify that the expected sync object is called 3 times(for each form) with proper args
         self.assertEqual(mock_sync_obj.call_count, 3)
@@ -111,7 +112,7 @@ class TestGetStreamsToSync(unittest.TestCase):
         """
         Test for parents selected, the function returns the same list 
         """
-        stream_list = ['forms', 'landings', 'questions']
+        stream_list = ['forms', 'submitted_landings', 'questions']
         sync_streams = get_stream_to_sync(stream_list)
 
         # Verify that sync_stream list is as expected
@@ -121,7 +122,7 @@ class TestGetStreamsToSync(unittest.TestCase):
         """
         Test if the child is selected, and the parent is added in `sync_stream_list`.
         """
-        expected_list = ['forms', 'landings', 'answers']
+        expected_list = ['forms', 'submitted_landings', 'answers']
         sync_streams = get_stream_to_sync(['forms', 'answers'])
 
         # Verify that sync_stream list is as expected
@@ -139,7 +140,7 @@ class TestGetselectedStreams(unittest.TestCase):
         catalog = {
             "streams": [
                 get_stream_catalog("forms", True),
-                get_stream_catalog("landings"),
+                get_stream_catalog("submitted_landings"),
                 get_stream_catalog("questions", True),
                 get_stream_catalog("answers"),
             ]
@@ -159,7 +160,7 @@ class TestWriteSchemas(unittest.TestCase):
     catalog = {
         "streams": [
             get_stream_catalog("forms", True),
-            get_stream_catalog("landings", True),
+            get_stream_catalog("submitted_landings", True),
             get_stream_catalog("questions", True),
             get_stream_catalog("answers", True),
         ]
@@ -170,18 +171,18 @@ class TestWriteSchemas(unittest.TestCase):
         Test only parent's schema is written if the only parent is selected.
         """
 
-        write_schemas("landings", self.catalog, ['forms', 'landings'])
+        write_schemas("submitted_landings", self.catalog, ['forms', 'submitted_landings'])
 
         # Verify that write_schema is called for expected stream
         self.assertEqual(mock_write_schema.call_count, 1)
-        mock_write_schema.assert_called_with('landings', mock.ANY, mock.ANY)
+        mock_write_schema.assert_called_with('submitted_landings', mock.ANY, mock.ANY)
 
     def test_only_child_selected(self, mock_write_schema):
         """
         Test only parent's schema is written if the only parent is selected.
         """
 
-        write_schemas("landings", self.catalog, ['answers'])
+        write_schemas("submitted_landings", self.catalog, ['answers'])
 
         # Verify if write_schema is called for expected stream
         self.assertEqual(mock_write_schema.call_count, 1)
@@ -193,9 +194,9 @@ class TestWriteSchemas(unittest.TestCase):
         """
         expected_calls = [
             mock.call('answers', mock.ANY, ""),
-            mock.call('landings', mock.ANY, ""),
+            mock.call('submitted_landings', mock.ANY, ""),
         ]
-        write_schemas("landings", self.catalog, ['answers', 'landings'])
+        write_schemas("submitted_landings", self.catalog, ['answers', 'submitted_landings'])
 
         # Verify if write_schema is called for the expected stream
         self.assertEqual(mock_write_schema.call_count, 2)

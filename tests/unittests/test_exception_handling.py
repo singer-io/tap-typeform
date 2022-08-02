@@ -24,6 +24,13 @@ class Mockresponse:
         raise requests.HTTPError("sample message")
 
 
+def get_mock_http_response(status_code, contents):
+    """Return http mock response."""
+    response = requests.Response()
+    response.status_code = status_code
+    response._content = contents.encode()
+    return response
+
 def mocked_badrequest_400_error(*args, **kwargs):
     json_decode_str = {"code": "VALIDATION_ERROR"}
 
@@ -65,10 +72,15 @@ def mocked_not_available_503_error(*args, **kwargs):
 
     return Mockresponse(json_decode_str, 503, raise_error=True)
 
+def mocked_not_available_504_error(*args, **kwargs):
+    json_decode_str = {}
+
+    return Mockresponse(json_decode_str, 504, raise_error=True)
+
 @mock.patch('tap_typeform.client.requests.Session.get')
 class TestClientErrorHandling(unittest.TestCase):
     """
-    Test handling of 4xx and 5xx errors with proper error message.
+    Test handling of 4xx and 5xx errors with a proper error message.
     """
 
     endpoint = "forms"
@@ -81,16 +93,17 @@ class TestClientErrorHandling(unittest.TestCase):
         (client_.TypeformTooManyError, mocked_failed_429_request, 429),
         (client_.TypeformInternalError, mocked_internalservererror_500_error, 500),
         (client_.TypeformNotAvailableError, mocked_not_available_503_error, 503),
+        (client_.TypeformError, mocked_not_available_504_error, 504),
     ])
     def test_error_handling(self, mock_session, error, mock_response, err_code):
         """
-        Test error is raised with expected error message.
+        Test error is raised with an expected error message.
         """
         config = {'token': '123'}
         client = client_.Client(config)
         url = client.build_url(self.endpoint)
         mock_session.side_effect=mock_response
-        error_message = ERROR_CODE_EXCEPTION_MAPPING.get(err_code).get("message")
+        error_message = ERROR_CODE_EXCEPTION_MAPPING.get(err_code, {}).get("message", "")
         
         expected_error_message = "HTTP-error-code: {}, Error: {}".format(err_code, error_message)
         with self.assertRaises(error) as e:
@@ -98,6 +111,22 @@ class TestClientErrorHandling(unittest.TestCase):
             
         # Verifying the message formed for the custom exception
         self.assertEqual(str(e.exception), expected_error_message)
+
+    @mock.patch("tap_typeform.client.raise_for_error")
+    @mock.patch("tap_typeform.client.LOGGER.info")
+    def test_success_response(self, mock_logger, mock_raise_error, mock_session):
+        """
+        Test that for success response, error is not raised
+        """
+        client = client_.Client({'token': '123'})
+        mock_session.return_value=get_mock_http_response(200, '{"total_items": 10}')
+        client.request("")
+
+        # Verify `raised_for_error` is not called
+        self.assertFalse(mock_raise_error.called)
+
+        # Verify `raw data item` logger is called
+        mock_logger.assert_called_with("raw data items= 10")
 
 @mock.patch('tap_typeform.client.requests.Session.get')
 class TestClientBackoffHandling(unittest.TestCase):

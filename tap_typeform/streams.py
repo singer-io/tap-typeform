@@ -59,11 +59,14 @@ def write_bookmarks(stream, selected_streams, form_id, bookmark_value, state):
         else:
             singer.write_bookmark(state, stream_obj.tap_stream_id, stream_obj.replication_keys[0], bookmark_value)
 
-    # For the each child, write the bookmark if it is selected.
+    # For each child, write the bookmark if it is selected.
     for child in stream_obj.children:
         write_bookmarks(child, selected_streams, form_id, bookmark_value, state)
 
 class Stream:
+    """
+    Base class representing tap-typeform streams.
+    """
     tap_stream_id = None
     replication_method = None
     replication_keys = None
@@ -131,8 +134,12 @@ class IncrementalStream(Stream):
         full_url = client.build_url(self.endpoint).format(form_id)
         current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
+
+        # Get minimum bookmark of child and parent streams.
         min_bookmark_value = get_min_bookmark(self.tap_stream_id, selected_stream_ids,
                                                 current_time, start_date, state, form_id, self.replication_keys[0])
+        LOGGER.info('Syncing  stream {} - form: {} start_date: {}'.format(
+                    self.tap_stream_id, form_id, pendulum.parse(min_bookmark_value).strftime("%Y-%m-%d %H:%M")))
         max_bookmark = bookmark
         page_count = 2
         params = {**self.params, "page_size": client.page_size}
@@ -144,6 +151,8 @@ class IncrementalStream(Stream):
             max_bookmark = self.write_records(records, catalogs, selected_stream_ids,
                                                     form_id, max_bookmark, state, start_date)
             page_count = response.get('page_count', 0)
+
+            # To get the next page, set param field
             if records:
                 params['before'] = records[-1].get('token')
 
@@ -155,15 +164,17 @@ class FullTableStream(Stream):
 
     replication_method = 'FULL_TABLE'
 
-    def sync_obj(self, client, state, catalogs, form,
+    def sync_obj(self, client, state, catalogs, form_id,
                     start_date, selected_stream_ids, records_count):
+        LOGGER.info('Syncing  stream {} - form: {}'.format(
+                    self.tap_stream_id, form_id))
         self.records_count = records_count
-        full_url = client.build_url(self.endpoint).format(form)
+        full_url = client.build_url(self.endpoint).format(form_id)
         stream_catalog = get_schema(catalogs, self.tap_stream_id)
         response = client.request(full_url, params=self.params)
 
         for record in response[self.data_key]:
-            self.add_fields_at_1st_level(record,{"form_id": form})
+            self.add_fields_at_1st_level(record,{"form_id": form_id})
 
         write_records(stream_catalog, self.tap_stream_id, response[self.data_key])
         self.records_count[self.tap_stream_id] += len(response[self.data_key])
@@ -213,15 +224,18 @@ class Questions(FullTableStream):
     data_key = 'fields'
 
     def add_fields_at_1st_level(self, record, additional_data={}):
+        """
+        Add additional data and nested fields to top level
+        """
 
         record.update({
             "form_id": additional_data['form_id'],
             "question_id": record['id']
             })
 
-class Landings(IncrementalStream):
-    tap_stream_id = 'landings'
-    replication_keys = ['landed_at']
+class SubmittedLandings(IncrementalStream):
+    tap_stream_id = 'submitted_landings'
+    replication_keys = ['submitted_at']
     key_properties = ['landing_id']
     endpoint = 'forms/{}/responses'
     children = ['answers']
@@ -234,6 +248,9 @@ class Landings(IncrementalStream):
     child_data_key = 'answers'
 
     def add_fields_at_1st_level(self, record, additional_data={}):
+        """
+        Add additional data and nested fields to top level
+        """
         record.update({
                 "_sdc_form_id": additional_data["_sdc_form_id"],
                 "user_agent": record["metadata"]["user_agent"],
@@ -244,17 +261,46 @@ class Landings(IncrementalStream):
                 "hidden": json.dumps(record["hidden"]) if "hidden" in record else ""
         })
 
+class UnsubmittedLandings(IncrementalStream):
+    tap_stream_id = 'unsubmitted_landings'
+    replication_keys = ['landed_at']
+    key_properties = ['landing_id']
+    endpoint = 'forms/{}/responses'
+    params = {
+                'since': '',
+                'page_size': '',
+                'completed': False
+            }
+    data_key = 'items'
+
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        """
+        Add additional data and nested fields to top level
+        """
+        record.update({
+                "_sdc_form_id": additional_data["_sdc_form_id"],
+                "user_agent": record["metadata"]["user_agent"],
+                "platform": record["metadata"]["platform"],
+                "referer": record["metadata"]["referer"],
+                "network_id": record["metadata"]["network_id"],
+                "browser": record["metadata"]["browser"],
+        })
+
 
 class Answers(IncrementalStream):
     tap_stream_id = 'answers'
-    replication_keys = ['landed_at']
+    replication_keys = ['submitted_at']
     key_properties = ['landing_id', 'question_id']
-    parent = 'landings'
+    parent = 'submitted_landings'
     data_key = 'answers'
 
     def add_fields_at_1st_level(self, record, additional_data = {}):
+        """
+        Add additional data and nested fields to top level
+        """
         data_type = record.get('type')
 
+        # Transform data_value according to data_type
         if data_type in ['choice', 'choices', 'payment']:
             answer_value = json.dumps(record.get(data_type))
         elif data_type in ['number', 'boolean']:
@@ -269,13 +315,14 @@ class Answers(IncrementalStream):
             "type": record.get('field',{}).get('type'),
             "ref": record.get('field',{}).get('ref'),
             "data_type": data_type,
-            "landed_at": additional_data.get('landed_at'),
+            "submitted_at": additional_data.get('submitted_at'),
             "answer": answer_value
         })
 
 STREAMS = {
     "forms": Forms,
     "questions": Questions,
-    "landings": Landings,
+    "submitted_landings": SubmittedLandings,
+    "unsubmitted_landings": UnsubmittedLandings,
     "answers": Answers,
 }
