@@ -2,7 +2,7 @@ import tap_tester.connections as connections
 import tap_tester.runner as runner
 import tap_tester.menagerie as menagerie
 
-from base import TypeformBaseTest
+from base import TypeformBaseTest, LOGGER
 
 class TypeformStartDateTest(TypeformBaseTest):
     """
@@ -57,7 +57,7 @@ class TypeformStartDateTest(TypeformBaseTest):
         ### Update START DATE Between Syncs
         ##########################################################################
 
-        print("REPLICATION START DATE CHANGE: {} ===>>> {} ".format(self.start_date, self.start_date_2))
+        LOGGER.info("REPLICATION START DATE CHANGE: {} ===>>> {} ".format(self.start_date, self.start_date_2))
         self.start_date = self.start_date_2
 
         ##########################################################################

@@ -21,8 +21,7 @@ def validate_form_ids(client, config):
     form_stream = Forms()
 
     if not config.get('forms'):
-        LOGGER.fatal("No forms were provided in config")
-        raise NoFormsProvidedError
+        raise NoFormsProvidedError("No forms were provided in the config")
 
     config_forms = _forms_to_list(config)
     api_forms = {form.get('id') for res in form_stream.get_forms(client) for form in res}
@@ -30,10 +29,9 @@ def validate_form_ids(client, config):
     mismatched_forms = config_forms.difference(api_forms)
 
     if len(mismatched_forms) > 0:
-        LOGGER.fatal(f"FormMistmatchError: forms {mismatched_forms} not returned by API")
         # Raise an error if any form-id from config is not matching
         # from ids from API response
-        raise FormMistmatchError
+        raise FormMistmatchError("FormMistmatchError: forms {} not returned by API".format(mismatched_forms))
 
 
 @utils.handle_top_exception(LOGGER)
