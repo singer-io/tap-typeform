@@ -77,6 +77,7 @@ def mocked_not_available_504_error(*args, **kwargs):
 
     return Mockresponse(json_decode_str, 504, raise_error=True)
 
+@mock.patch("time.sleep")
 @mock.patch('tap_typeform.client.requests.Session.get')
 class TestClientErrorHandling(unittest.TestCase):
     """
@@ -95,7 +96,7 @@ class TestClientErrorHandling(unittest.TestCase):
         (client_.TypeformNotAvailableError, mocked_not_available_503_error, 503),
         (client_.TypeformError, mocked_not_available_504_error, 504),
     ])
-    def test_error_handling(self, mock_session, error, mock_response, err_code):
+    def test_error_handling(self, mock_session, mock_sleep, error, mock_response, err_code):
         """
         Test error is raised with an expected error message.
         """
@@ -114,7 +115,7 @@ class TestClientErrorHandling(unittest.TestCase):
 
     @mock.patch("tap_typeform.client.raise_for_error")
     @mock.patch("tap_typeform.client.LOGGER.info")
-    def test_success_response(self, mock_logger, mock_raise_error, mock_session):
+    def test_success_response(self, mock_logger, mock_raise_error, mock_session, mock_sleep):
         """
         Test that for success response, error is not raised
         """
@@ -128,6 +129,7 @@ class TestClientErrorHandling(unittest.TestCase):
         # Verify `raw data item` logger is called
         mock_logger.assert_called_with("raw data items= 10")
 
+@mock.patch("time.sleep")
 @mock.patch('tap_typeform.client.requests.Session.get')
 class TestClientBackoffHandling(unittest.TestCase):
     """
@@ -144,7 +146,7 @@ class TestClientBackoffHandling(unittest.TestCase):
         (client_.TypeformNotAvailableError, mocked_not_available_503_error, 3),
         (client_.TypeformTooManyError, mocked_failed_429_request, 3),
     ])
-    def test_back_off_error_handling(self, mock_session, error,mock_response, expected_call_count):
+    def test_back_off_error_handling(self, mock_session, mock_sleep, error,mock_response, expected_call_count):
         """
         Test handling of backoff that function is retrying expected times
         """
