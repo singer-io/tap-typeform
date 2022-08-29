@@ -23,9 +23,6 @@ def get_mock_http_response(*args, **kwargs):
     response._content = contents.encode()
     return response
 
-# @patch('time.sleep')
-# @patch('requests.Session.get', side_effect = get_mock_http_response)
-# @patch('requests.Request.prepare')
 class TestPageSizeValue(unittest.TestCase):
 
     endpoint = "forms"

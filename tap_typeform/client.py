@@ -135,16 +135,14 @@ class Client(object):
         and will return the default value if invalid page size is given.
         """
         page_size = config.get('page_size')
-        try:
-            if page_size is None:
-                pass
-            elif int(float(page_size)) > 0:
-                self.page_size = int(float(page_size))
-                self.form_page_size = min(self.form_page_size, self.page_size)
-            else:
-                raise Exception
-        except Exception:
-            raise Exception(f"The entered page size is invalid, it should be a valid integer.") from None
+        if page_size is None:
+            return
+        if ((type(page_size) == int or type(page_size) == float) and (page_size > 0)) or \
+            (type(page_size) == str and page_size.replace('.', '', 1).isdigit() and (float(page_size) > 0) ):
+            self.page_size = int(float(page_size))
+            self.form_page_size = min(self.form_page_size, self.page_size)
+        else:
+            raise Exception(f"The entered page size is invalid, it should be a valid integer.")
 
     def build_url(self, endpoint):
         """
