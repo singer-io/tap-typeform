@@ -3,24 +3,35 @@
   "additionalProperties": false,
   "properties": {
     "landing_id": {
+      "type": ["null", "string"] 
+    },
+    "token": {
       "type": ["null", "string"]
     },
-    "question_id": {
-      "type": ["null", "string"]
-    },
-    "type": {
-      "type": ["null", "string"]
-    },
-    "ref": {
-      "type": ["null", "string"]
-    },
-    "data_type": {
-      "type": ["null", "string"]
+    "landed_at": {
+      "type": ["null", "string"],
+      "format": "date-time"
     },
     "submitted_at": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
+    "user_agent": {
       "type": ["null", "string"]
     },
-    "answer": {
+    "platform": {
+      "type": ["null", "string"]
+    },
+    "referer": {
+      "type": ["null", "string"]
+    },
+    "network_id": {
+      "type": ["null", "string"]
+    },
+    "browser": {
+      "type": ["null", "string"]
+    },
+    "hidden": {
       "type": ["null", "string"]
     },
     "_sdc_form_id": {

@@ -20,19 +20,21 @@ class DiscoveryTest(TypeformBaseTest):
         • Verify the stream names discovered were what we expect
         • Verify stream names follow naming convention
           streams should only have lowercase alphas and underscores
-        • verify there is only 1 top level breadcrumb
-        • verify replication key(s)
-        • verify primary key(s)
-        • verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
-        • verify the actual replication matches our expected replication method
-        • verify that primary, replication and foreign keys
+        • Verify there is only 1 top level breadcrumb
+        • Verify there are no duplicate metadata entries
+        • Verify replication key(s)
+        • Verify primary key(s)
+        • Verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
+        • Verify the actual replication matches our expected replication method
+        • Verify that primary, replication and foreign keys
           are given the inclusion of automatic.
-        • verify that all other fields have inclusion of available metadata.
+        • Verify that all other fields have inclusion of available metadata.
         """
         streams_to_test = self.expected_streams()
 
         conn_id = connections.ensure_connection(self)
 
+        # Verify that there are catalogs found
         found_catalogs = self.run_and_verify_check_mode(conn_id)
 
         # Verify stream names follow naming convention
@@ -44,7 +46,7 @@ class DiscoveryTest(TypeformBaseTest):
         for stream in streams_to_test:
             with self.subTest(stream=stream):
 
-                # Verify ensure the caatalog is found for a given stream
+                # Verify ensure the catalog is found for a given stream
                 catalog = next(iter([catalog for catalog in found_catalogs
                                      if catalog["stream_name"] == stream]))
                 self.assertIsNotNone(catalog)
@@ -76,25 +78,49 @@ class DiscoveryTest(TypeformBaseTest):
                     if item.get("metadata").get("inclusion") == "automatic"
                 )
 
+                actual_fields = []
+                for md_entry in metadata:
+                    if md_entry['breadcrumb'] != []:
+                        actual_fields.append(md_entry['breadcrumb'][1])
+
                 ##########################################################################
                 ### metadata assertions
                 ##########################################################################
 
-                # verify there is only 1 top level breadcrumb in metadata
+                # Verify there is only 1 top level breadcrumb in metadata
                 self.assertTrue(len(stream_properties) == 1,
                                 msg="There is NOT only one top level breadcrumb for {}".format(stream) + \
                                 "\nstream_properties | {}".format(stream_properties))
 
-                # verify primary key(s) match expectations
+                # Verify there are no duplicate metadata entries
+                self.assertEqual(len(actual_fields), len(set(actual_fields)), msg = "duplicates in the fields retrieved")
+
+                # Verify replication key(s) match expectations
+                self.assertEqual(expected_replication_keys, actual_replication_keys,
+                                 msg="expected replication key {} but actual is {}".format(
+                                     expected_replication_keys, actual_replication_keys))
+
+                # Verify primary key(s) match expectations
                 self.assertSetEqual(
                     expected_primary_keys, actual_primary_keys,
                 )
 
-                # verify that primary keys and replication keys
-                # are given the inclusion of automatic in metadata.
+                # Verify the replication method matches our expectations
+                self.assertEqual(expected_replication_method, actual_replication_method,
+                                    msg="The actual replication method {} doesn't match the expected {}".format(
+                                        actual_replication_method, expected_replication_method))
+
+                # Verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
+                if expected_replication_keys:
+                    self.assertEqual(self.INCREMENTAL, actual_replication_method)
+                else:
+                    self.assertEqual(self.FULL_TABLE, actual_replication_method)
+
+
+                # Verify that primary keys and replication keys are given the inclusion of automatic in metadata.
                 self.assertSetEqual(expected_automatic_fields, actual_automatic_fields)
 
-                # verify that all other fields have inclusion of available
+                # Verify that all other fields have inclusion of available
                 # This assumes there are no unsupported fields for SaaS sources
                 self.assertTrue(
                     all({item.get("metadata").get("inclusion") == "available"
