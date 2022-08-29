@@ -211,6 +211,7 @@ class Forms(IncrementalStream):
         max_bookmark = bookmark
 
         for records in self.get_forms(client):
+            
             max_bookmark = self.write_records(records, catalogs, selected_stream_ids,
                         None, max_bookmark, state, start_date)
             write_bookmarks(self.tap_stream_id, selected_stream_ids, None, max_bookmark, state)
@@ -223,15 +224,35 @@ class Questions(FullTableStream):
     endpoint = 'forms/{}'
     data_key = 'fields'
 
+    def fetch_sub_questions(self, row):
+        '''This function fetches records for each sub_question in a question group and returns a list of fetched sub_questions'''
+        sub_questions = [] #Creating blank list to accommodate each sub-question's records
+
+        #Appending each sub-question to the list
+        for question in row['properties'].get('fields',[]):
+            sub_questions.append({
+                "question_id": question['id'],
+                "title": question['title'],
+                "ref": question['ref']
+            })
+
+        return sub_questions
+
     def add_fields_at_1st_level(self, record, additional_data={}):
         """
         Add additional data and nested fields to top level
         """
+        sub_questions ={} #Creating a blank dictionary to store records of sub_questions,if any
 
+        #If type of question is group, i.e. it has sub_questions, then fetch those sub_questions
+        if record.get('type') == 'group':
+            sub_questions['sub_questions'] = self.fetch_sub_questions(record)
+
+        #If sub_questions are fetched then add those in this field and display the same, else don't display this field
         record.update({
             "form_id": additional_data['form_id'],
             "question_id": record['id']
-            })
+            }|sub_questions)
 
 class SubmittedLandings(IncrementalStream):
     tap_stream_id = 'submitted_landings'

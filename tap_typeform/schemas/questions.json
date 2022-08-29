@@ -14,6 +14,23 @@
     "ref": {
       "type": ["null", "string"]
     },
+    "sub_questions": {
+      "type": ["null", "array"],
+      "items": {
+        "type": ["null", "object"],
+        "properties": {
+          "question_id": {
+            "type": ["null", "string"]
+          },
+          "title": {
+            "type": ["null", "string"]
+          },
+          "ref": {
+            "type": ["null", "string"]
+          }
+        }
+      }
+    },
     "attachment": {
       "type": ["null", "object"],
       "properties": {
@@ -213,5 +230,5 @@
       }
     }
   },
-  "key_properties": ["form_id", "question_id"]
+  "key_properties": ["form_id","question_id"]
 }
