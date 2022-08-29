@@ -1,6 +1,6 @@
 import unittest
 from unittest import mock
-from tap_typeform.streams import fetch_sub_questions
+from tap_typeform.streams import Questions
 from parameterized import parameterized
 
 class TestSubQuestionTest(unittest.TestCase):
@@ -39,6 +39,6 @@ class TestSubQuestionTest(unittest.TestCase):
         """
         To verify that we are getting expected response or not for question group
         """
-
-        self.assertEqual(expected_value,  fetch_sub_questions(test_value))
+        question_stream = Questions()
+        self.assertEqual(expected_value,  question_stream.fetch_sub_questions(test_value))
 
