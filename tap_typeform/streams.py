@@ -245,7 +245,7 @@ class Questions(FullTableStream):
         sub_questions ={} #Creating a blank dictionary to store records of sub_questions,if any
 
         #If type of question is group, i.e. it has sub_questions, then fetch those sub_questions
-        if record['type'] == 'group':
+        if record.get('type') == 'group':
             sub_questions['sub_questions'] = self.fetch_sub_questions(record)
 
         #If sub_questions are fetched then add those in this field and display the same, else don't display this field

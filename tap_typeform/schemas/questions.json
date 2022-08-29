@@ -1,23 +1,18 @@
 {
     "type": ["null", "object"],
-    "selected": true,
     "additionalProperties": false,
     "properties": {
 	"form_id": {
-	    "type": ["null", "string"],
-	    "selected": true
+	    "type": ["null", "string"]
 	},
 	"question_id": {
-	    "type": ["null", "string"],
-	    "selected": true
+	    "type": ["null", "string"]
 	},
       	"title": {
-            "type": ["null", "string"],
-	    "selected": true
+            "type": ["null", "string"]
 	},
       	"ref": {
-            "type": ["null", "string"],
-	    "selected": true
+            "type": ["null", "string"]
 	},
 	"sub_questions": {
 		"type": ["null", "array"],
@@ -25,16 +20,13 @@
 			"type": ["null", "object"],
 			"properties": {
 				"question_id": {
-					"type": ["null", "string"],
-					"selected": true
+					"type": ["null", "string"]
 				},
 				"title": {
-					"type": ["null", "string"],
-					"selected": true
+					"type": ["null", "string"]
 				},
 				"ref": {
-					"type": ["null", "string"],
-					"selected": true
+					"type": ["null", "string"]
 				}
 			}
 		}
