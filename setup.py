@@ -15,6 +15,7 @@ setup(
         "ratelimit",
         "backoff",
         "requests",
+        "parameterized",
     ],
     extras_require={
         'dev': [

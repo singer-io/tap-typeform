@@ -2,7 +2,6 @@
   "token": "<myapitoken>",
   "start_date": "2018-01-01T00:00:00Z",
   "forms": "ZFuC6U,bFPlvG,WFBGBZ,WF0XE6,xFWoCE,OFHRwO,QFh3FI",
-  "request_timeout": 300,
-  "incremental_range": "daily"
+  "page_size": 100,
+  "request_timeout": 300
 }
-
