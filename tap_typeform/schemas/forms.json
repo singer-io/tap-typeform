@@ -5,88 +5,53 @@
   ],
   "properties": {
     "id": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "type": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "title": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "last_updated_at": {
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
+    },
+    "created_at": {
+      "type": ["null", "string"],
+      "format": "date-time"
     },
     "settings": {
-      "type": [
-        "null",
-        "object"
-      ],
+      "type": ["null", "object"],
       "properties": {
         "is_public": {
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "is_trial": {
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         }
       }
     },
     "self": {
-      "type": [
-        "null",
-        "object"
-      ],
+      "type": ["null", "object"],
       "properties": {
         "href": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         }
       }
     },
     "theme": {
-      "type": [
-        "null",
-        "object"
-      ],
+      "type": ["null", "object"],
       "properties": {
         "href": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         }
       }
     },
     "_links": {
-      "type": [
-        "null",
-        "object"
-      ],
+      "type": ["null", "object"],
       "properties": {
         "display": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "type": ["null", "string"]
         }
       }
     }
