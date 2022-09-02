@@ -74,6 +74,7 @@ class TypeformAllFieldsTest(TypeformBaseTest):
                 # Verify that more than just the automatic fields are replicated for each stream.
                 self.assertTrue(expected_automatic_keys.issubset(
                     expected_all_keys), msg='{} is not in "expected_all_keys"'.format(expected_automatic_keys-expected_all_keys))
+                self.assertGreater(len(expected_all_keys), len(expected_automatic_keys))
 
                 expected_all_keys = expected_all_keys - KNOWN_MISSING_FIELDS.get(stream, set())
                 messages = synced_records.get(stream)
@@ -84,6 +85,4 @@ class TypeformAllFieldsTest(TypeformBaseTest):
                         actual_all_keys.update(message['data'].keys())
 
                 # Verify all fields for each stream are replicated
-                self.assertGreater(len(expected_all_keys), len(expected_automatic_keys))
-                self.assertTrue(expected_automatic_keys.issubset(expected_all_keys), msg=f'{expected_automatic_keys-expected_all_keys} is not in "expected_all_keys"')
                 self.assertSetEqual(expected_all_keys, actual_all_keys)
