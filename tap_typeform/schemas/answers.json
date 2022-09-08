@@ -18,7 +18,8 @@
       "type": ["null", "string"]
     },
     "submitted_at": {
-      "type": ["null", "string"]
+      "type": ["null", "string"],
+      "format": "date-time"
     },
     "answer": {
       "type": ["null", "string"]
