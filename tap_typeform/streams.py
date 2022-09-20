@@ -1,406 +1,349 @@
+from copy import deepcopy
 import json
-import time
-
 import pendulum
-import pytz
+from datetime import datetime
 import singer
-from singer.bookmarks import write_bookmark
+from singer import bookmarks
 
-from tap_typeform import schemas
 
 LOGGER = singer.get_logger()
 
-MAX_METRIC_JOB_TIME = 1800
-METRIC_JOB_POLL_SLEEP = 1
-FORM_STREAMS = ['landings', 'answers'] #streams that get sync'd in sync_forms
-MAX_RESPONSES_PAGE_SIZE = 1000
 
-def count(tap_stream_id, records):
+def write_records(catalog_entry, tap_stream_id, records):
+    extraction_time = singer.utils.now()
+    stream_metadata = singer.metadata.to_map(catalog_entry['metadata'])
+    stream_schema = catalog_entry['schema']
     with singer.metrics.record_counter(tap_stream_id) as counter:
+        with singer.Transformer() as transformer:
+            for rec in records:
+                rec = transformer.transform(rec, stream_schema, stream_metadata)
+                singer.write_record(tap_stream_id, rec, time_extracted=extraction_time)
         counter.increment(len(records))
 
-def write_records(atx, tap_stream_id, records):
-    extraction_time = singer.utils.now()
-    catalog_entry = atx.get_catalog_entry(tap_stream_id)
-    stream_metadata = singer.metadata.to_map(catalog_entry.metadata)
-    stream_schema = catalog_entry.schema.to_dict()
-    with singer.Transformer() as transformer:
-        for rec in records:
-            rec = transformer.transform(rec, stream_schema, stream_metadata)
-            singer.write_record(tap_stream_id, rec, time_extracted=extraction_time)
-        atx.counts[tap_stream_id] += len(records)
-    count(tap_stream_id, records)
-
-def get_date_and_integer_fields(stream):
-    date_fields = []
-    integer_fields = []
-    for prop, json_schema in stream.schema.properties.items():
-        _type = json_schema.type
-        if isinstance(_type, list) and 'integer' in _type or \
-            _type == 'integer':
-            integer_fields.append(prop)
-        elif json_schema.format == 'date-time':
-            date_fields.append(prop)
-    return date_fields, integer_fields
-
-def base_transform(date_fields, integer_fields, obj):
-    new_obj = {}
-    for field, value in obj.items():
-        if value == '':
-            value = None
-        elif field in integer_fields and value is not None:
-            value = int(value)
-        elif field in date_fields and value is not None:
-            value = pendulum.parse(value).isoformat()
-        new_obj[field] = value
-    return new_obj
-
-def select_fields(mdata, obj):
-    new_obj = {}
-    for key, value in obj.items():
-        field_metadata = mdata.get(('properties', key))
-        if field_metadata and \
-            (field_metadata.get('selected') is True or \
-            field_metadata.get('inclusion') == 'automatic'):
-            new_obj[key] = value
-    return new_obj
-
-def get_form_definition(atx, form_id):
-    return atx.client.get_form_definition(form_id)
-
-def get_form(atx, form_id, start_date, token=None, next_page=False):
-    """Calls the API client get_form_responses() method with requisite params.
-
-    The API limits responses to a max of 1000 per call, but it supports
-        paging through responses using a `before` or `after` param.
-
-    https://developer.typeform.com/responses/walkthroughs/#use-query-parameters-to-retrieve-specific-data
-
-    By using a `sort` with `submitted_at` in ascending order in the initial call
-        we can then use the `after` param that has the greatest `submitted_at`
-        value in the initial response for the next call.
-
-    :param atx: The Typeform API client.
-    :param form_id: The form id to which responses are to be retrieved.
-    :param start_date: Date to use in the `since` param of the API call.
-    :param token: The token to use for the `after` param of the API call.
-    :param next_page: Boolean if retreiving more records using the `after` param
-        for paginating through responses.
-
-    :return: API client response.
+def get_bookmark(state, stream_name, form_id, bookmark_key, start_date):
     """
-    after = f'after token: {token} ' if token else ''
-    LOGGER.info('Forms query - form: {} start_date: {} {}'.format(
-        form_id,
-        pendulum.from_timestamp(start_date).strftime("%Y-%m-%d %H:%M"),
-        after))
+    Return bookmark value if available in the state otherwise return start date
+    """
+    if form_id:
+        return bookmarks.get_bookmark(state, stream_name, form_id, {}).get(bookmark_key, start_date)
+    return bookmarks.get_bookmark(state, stream_name, bookmark_key,start_date)
 
-    sort = None if next_page else 'submitted_at,asc' # sorting isn't suppored when using `after`
+def get_min_bookmark(stream, selected_streams, bookmark, start_date, state, form_id, bookmark_key):
+    """
+    Get the minimum bookmark from the parent and its corresponding child bookmarks.
+    """
 
-    return atx.client.get_form_responses(
-        form_id,
-        params={
-            'since': start_date,
-            'page_size': MAX_RESPONSES_PAGE_SIZE,
-            'sort': sort,
-            'after': token,
-            })
+    stream_obj = STREAMS[stream]()
+    min_bookmark = bookmark
+    if stream in selected_streams:
+        min_bookmark = min(min_bookmark, get_bookmark(state, stream, form_id, bookmark_key, start_date))
 
-def get_forms(atx):
-    LOGGER.info('All forms query')
-    return atx.client.get_forms()
+    for child in filter(lambda x: x in selected_streams, stream_obj.children):
+        min_bookmark = min(min_bookmark, get_min_bookmark(child, selected_streams, bookmark, start_date, state, form_id, bookmark_key))
 
-def get_landings(atx, form_id, bookmark):
-    LOGGER.info('All landings query')
+    return min_bookmark
 
-    page_count = 2
-    sort = 'submitted_at,asc' # sorting isn't supported with `after` and defaults to submitted_at
-    token = None
+def get_schema(catalog, stream_id):
+    """
+    Return catalog of the specified stream.
+    """
+    stream_catalog = [cat for cat in catalog if cat['tap_stream_id'] == stream_id ][0]
+    return stream_catalog
 
-    while page_count > 1:
-        response = atx.client.get_form_responses(
-            form_id,
-            params={
-                'since': bookmark,
-                'page_size': MAX_RESPONSES_PAGE_SIZE,
-                'sort': sort,
-                'after': token,
-            })
-
-        page_count = response.get('page_count', 1)
-        sort = None
-        items = response.get('items', [])
-        if items:
-            token = items[-1].get('token')
-
-
-        yield from items
-
-
-def sync_form_definition(atx, form_id):
-    with singer.metrics.job_timer('form definition '+form_id):
-        start = time.monotonic()
-        while True:
-            if (time.monotonic() - start) >= MAX_METRIC_JOB_TIME:
-                raise Exception('Metric job timeout ({} secs)'.format(
-                    MAX_METRIC_JOB_TIME))
-            response = get_form_definition(atx, form_id)
-            data = response.get('fields',[])
-            if data != '':
-                break
-            else:
-                time.sleep(METRIC_JOB_POLL_SLEEP)
-
-    definition_data_rows = []
-
-    # we only care about a few fields in the form definition
-    # just those that give an analyst a reference to the submissions
-    for row in data:
-        definition_data_rows.append({
-            "form_id": form_id,
-            "question_id": row['id'],
-            "title": row['title'],
-            "ref": row['ref']
-            })
-
-    write_records(atx, 'questions', definition_data_rows)
-
-
-def sync_form(atx, form_id, start_date, token=None, next_page=False):
-    with singer.metrics.job_timer('form '+form_id):
-        start = time.monotonic()
-        # we've really moved this functionality to the request in the http script
-        #so we don't expect that this will actually have to run mult times
-        while True:
-            if (time.monotonic() - start) >= MAX_METRIC_JOB_TIME:
-                raise Exception('Metric job timeout ({} secs)'.format(
-                    MAX_METRIC_JOB_TIME))
-            response = get_form(atx, form_id, start_date, token, next_page)
-            data = response['items']
-            if data != '':
-                break
-            else:
-                time.sleep(METRIC_JOB_POLL_SLEEP)
-
-    answers_data_rows = []
-
-    max_submitted_dt = pendulum.from_timestamp(start_date).isoformat()
-    max_token = ''
-
-    for row in data:
-
-        max_submitted_dt = row['submitted_at']
-        max_token = row['token']
-
-        if row.get('answers') and 'answers' in atx.selected_stream_ids:
-            for answer in row['answers']:
-                data_type = answer.get('type')
-
-                if data_type in ['choice', 'choices', 'payment']:
-                    answer_value = json.dumps(answer.get(data_type))
-                elif data_type in ['number', 'boolean']:
-                    answer_value = str(answer.get(data_type))
-                else:
-                    answer_value = answer.get(data_type)
-
-                answers_data_rows.append({
-                    "landing_id": row.get('landing_id'),
-                    "question_id": answer.get('field',{}).get('id'),
-                    "type": answer.get('field',{}).get('type'),
-                    "ref": answer.get('field',{}).get('ref'),
-                    "data_type": data_type,
-                    "landed_at": row.get("landed_at"),
-                    "answer": answer_value
-                })
-
-    if 'answers' in atx.selected_stream_ids:
-        write_records(atx, 'answers', answers_data_rows)
-
-    return response.get('page_count', 0), max_submitted_dt, max_token
-
-
-def write_forms_state(atx, stream_name, form_id, value):
-    if isinstance(value, dict):
-        write_bookmark(atx.state, stream_name, form_id, value)
-    else:
-        write_bookmark(atx.state, stream_name, form_id, value.to_datetime_string())
-    atx.write_state()
-
-
-def sync_latest_forms(atx):
-    replication_key = 'last_updated_at'
-    tap_id = 'forms'
-    with singer.metrics.job_timer('all forms'):
-        start = time.monotonic()
-        while True:
-            if (time.monotonic() - start) >= MAX_METRIC_JOB_TIME:
-                raise Exception('Metric job timeout ({} secs)'.format(
-                    MAX_METRIC_JOB_TIME))
-            forms = get_forms(atx)
-            if forms != '':
-                break
-            else:
-                time.sleep(METRIC_JOB_POLL_SLEEP)
-
-    # Using an older version of singer
-    bookmark_date = singer.get_bookmark(atx.state, tap_id, replication_key) or atx.config['start_date']
-    bookmark_datetime = singer.utils.strptime_to_utc(bookmark_date)
-    max_datetime = bookmark_datetime
-
-    records = []
-    for form in forms:
-        record_datetime = singer.utils.strptime_to_utc(form[replication_key])
-        if record_datetime >= bookmark_datetime:
-            records.append(form)
-            max_datetime = max(record_datetime, max_datetime)
-
-    write_records(atx, tap_id, records)
-    bookmark_date = singer.utils.strftime(max_datetime)
-    state = singer.write_bookmark(atx.state,
-                                  tap_id,
-                                  replication_key,
-                                  bookmark_date)
-
-    return state
-
-
-def is_incremental(stream):
-    return schemas.REPLICATION_METHODS[stream].get("replication_method") == "INCREMENTAL"
-
-
-def get_replication_key(stream):
-    if is_incremental(stream):
-        return schemas.REPLICATION_METHODS[stream].get("replication_keys")[0]
-    return None
-
-
-def construct_bookmark(stream_name, value):
-    replication_key = get_replication_key(stream_name)
-    if replication_key:
-        bookmark_value = {replication_key: value.to_datetime_string()}
-    else:
-        bookmark_value = value
-
-    return bookmark_value
-
-def get_bookmark_value(state, stream_name, key, default=None):
-    # singer.get_bookmark(atx.state, stream_name, form_id, default=s_d)
-    bookmark = singer.get_bookmark(state, stream_name, key, default=default)
-
-    if isinstance(bookmark, dict):
-        return list(bookmark.values())[0]
-
-    return bookmark
-
-
-def sync_landings(atx, form_id):
-    # similar to `answers` stream use now_parsed to fallback on and to bookmark
-    now_parsed = pendulum.now(pytz.utc)
-    default_start_date = atx.config['start_date'] or now_parsed.isoformat()
-    bookmark = get_bookmark_value(atx.state, 'landings', form_id, default=default_start_date)
-    bookmark_dt = pendulum.parse(bookmark)
-    max_dt = bookmark_dt
-
-    response = get_landings(atx, form_id, int(bookmark_dt.timestamp()))
-
-    landings_data_rows = []
-
-    for row in response:
-        if 'hidden' not in row:
-            hidden = ''
+def write_bookmarks(stream, selected_streams, form_id, bookmark_value, state):
+    stream_obj = STREAMS[stream]()
+    # If the stream is selected, write the bookmark.
+    if stream in selected_streams:
+        if form_id:
+            singer.write_bookmark(state, stream_obj.tap_stream_id, form_id, {stream_obj.replication_keys[0]: bookmark_value})
         else:
-            hidden = json.dumps(row['hidden'])
+            singer.write_bookmark(state, stream_obj.tap_stream_id, stream_obj.replication_keys[0], bookmark_value)
 
-        record_dt = pendulum.parse(row['landed_at'])
+    # For each child, write the bookmark if it is selected.
+    for child in stream_obj.children:
+        write_bookmarks(child, selected_streams, form_id, bookmark_value, state)
 
-        # the schema here reflects what we saw through testing
-        # the typeform documentation is subtly inaccurate
-        if 'landings' in atx.selected_stream_ids:
-            landings_data_rows.append({
-                "landing_id": row['landing_id'],
-                "token": row['token'],
-                "landed_at": row['landed_at'],
-                "submitted_at": row['submitted_at'],
-                "user_agent": row['metadata']['user_agent'],
-                "platform": row['metadata']['platform'],
-                "referer": row['metadata']['referer'],
-                "network_id": row['metadata']['network_id'],
-                "browser": row['metadata']['browser'],
-                "hidden": hidden
+class Stream:
+    """
+    Base class representing tap-typeform streams.
+    """
+    tap_stream_id = None
+    replication_method = None
+    replication_keys = None
+    key_properties = []
+    endpoint = None
+    filter_param = False
+    children = []
+    headers = {}
+    params = {}
+    parent = None
+    data_key = None
+    child_data_key = None
+    records_count = {}
+
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        pass
+
+    def sync_child_stream(self, record, catalogs, state, selected_stream_ids, form_id, start_date, max_bookmark):
+
+        for child in self.children:
+            child_obj = STREAMS[child]()
+            child_bookmark = get_bookmark(state, child_obj.tap_stream_id, form_id, self.replication_keys[0], start_date)
+
+            if child in selected_stream_ids and record[child_obj.replication_keys[0]] >= child_bookmark:
+                child_catalog = get_schema(catalogs, child)
+                for rec in record[self.child_data_key]:
+                    child_obj.add_fields_at_1st_level(rec, {**record, "_sdc_form_id": form_id})
+                write_records(child_catalog, child_obj.tap_stream_id, record[self.child_data_key])
+                self.records_count[child_obj.tap_stream_id] += len(record[self.child_data_key])
+                max_bookmark = max(max_bookmark, record[child_obj.replication_keys[0]])
+        return max_bookmark
+
+class IncrementalStream(Stream):
+
+    replication_method = 'INCREMENTAL'
+
+    def write_records(self, records, catalogs, selected_stream_ids,
+                        form_id, max_bookmark, state, start_date):
+        stream_catalog = get_schema(catalogs, self.tap_stream_id)
+        bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
+
+        with singer.metrics.record_counter(self.tap_stream_id) as counter: 
+            with singer.Transformer() as transformer:
+                extraction_time = singer.utils.now()
+                stream_metadata = singer.metadata.to_map(stream_catalog['metadata'])
+
+                for record in records:
+                    self.add_fields_at_1st_level(record, {"_sdc_form_id": form_id})
+                    if self.tap_stream_id in selected_stream_ids and record[self.replication_keys[0]] >= bookmark:
+                        rec = transformer.transform(record, stream_catalog['schema'], stream_metadata)
+                        singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
+                        max_bookmark = max(max_bookmark, record[self.replication_keys[0]])
+                        counter.increment(1)
+                        self.records_count[self.tap_stream_id] += 1
+
+                    # Write selected child records
+                    if self.children and self.child_data_key in record:
+                        max_bookmark =  self.sync_child_stream(record, catalogs, state, selected_stream_ids,form_id, start_date, max_bookmark)
+
+        return max_bookmark
+
+    def sync_obj(self, client, state, catalogs, form_id,
+                    start_date, selected_stream_ids, records_count):
+        self.records_count = records_count
+        full_url = client.build_url(self.endpoint).format(form_id)
+        current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
+
+        # Get minimum bookmark of child and parent streams.
+        min_bookmark_value = get_min_bookmark(self.tap_stream_id, selected_stream_ids,
+                                                current_time, start_date, state, form_id, self.replication_keys[0])
+        LOGGER.info('Syncing  stream {} - form: {} start_date: {}'.format(
+                    self.tap_stream_id, form_id, pendulum.parse(min_bookmark_value).strftime("%Y-%m-%d %H:%M")))
+        max_bookmark = bookmark
+        page_count = 2
+        params = {**self.params, "page_size": client.page_size}
+        params['since'] = int(pendulum.parse(min_bookmark_value).timestamp())
+
+        while page_count > 1:
+            response = client.request(full_url, params)
+            records = response[self.data_key]
+            max_bookmark = self.write_records(records, catalogs, selected_stream_ids,
+                                                    form_id, max_bookmark, state, start_date)
+            page_count = response.get('page_count', 0)
+
+            # To get the next page, set param field
+            if records:
+                params['before'] = records[-1].get('token')
+
+        write_bookmarks(self.tap_stream_id, selected_stream_ids, form_id, max_bookmark, state)
+        singer.write_state(state)
+
+class FullTableStream(Stream):
+    endpoint = 'forms/{}'
+
+    replication_method = 'FULL_TABLE'
+
+    def sync_obj(self, client, state, catalogs, form_id,
+                    start_date, selected_stream_ids, records_count):
+        LOGGER.info('Syncing  stream {} - form: {}'.format(
+                    self.tap_stream_id, form_id))
+        self.records_count = records_count
+        full_url = client.build_url(self.endpoint).format(form_id)
+        stream_catalog = get_schema(catalogs, self.tap_stream_id)
+        response = client.request(full_url, params=self.params)
+
+        for record in response[self.data_key]:
+            self.add_fields_at_1st_level(record,{"form_id": form_id})
+
+        write_records(stream_catalog, self.tap_stream_id, response[self.data_key])
+        self.records_count[self.tap_stream_id] += len(response[self.data_key])
+
+class Forms(IncrementalStream):
+    tap_stream_id = 'forms'
+    key_properties = ['id']
+    endpoint='forms'
+    replication_method = 'INCREMENTAL'
+    replication_keys = ['last_updated_at']
+    data_key = 'items'
+    params = {
+        'sort_by': 'last_updated_at',
+        'order_by': 'asc'
+    }
+
+    def get_forms(self, client):
+        full_url = client.build_url(self.endpoint)
+        page = 1
+        paginate = True
+        params = {**self.params, "page_size": client.form_page_size}
+        while paginate:
+            params['page'] = page
+            response = client.request(full_url, params=params)
+            page_count = response.get('page_count')
+            paginate = page_count > page
+            page += 1
+            yield response.get(self.data_key)
+
+    def sync_obj(self, client, state, catalogs,
+                    start_date, selected_stream_ids, records_count):
+        self.records_count = records_count
+        bookmark = state.get('bookmarks',{}).get(self.tap_stream_id,{}).get(self.replication_keys[0], start_date)
+        max_bookmark = bookmark
+
+        for records in self.get_forms(client):
+            
+            max_bookmark = self.write_records(records, catalogs, selected_stream_ids,
+                        None, max_bookmark, state, start_date)
+            write_bookmarks(self.tap_stream_id, selected_stream_ids, None, max_bookmark, state)
+
+        singer.write_state(state)
+
+class Questions(FullTableStream):
+    tap_stream_id = 'questions'
+    key_properties = ['form_id', 'question_id']
+    endpoint = 'forms/{}'
+    data_key = 'fields'
+
+    def fetch_sub_questions(self, row):
+        '''This function fetches records for each sub_question in a question group and returns a list of fetched sub_questions'''
+        sub_questions = [] #Creating blank list to accommodate each sub-question's records
+
+        #Appending each sub-question to the list
+        for question in row['properties'].get('fields',[]):
+            sub_questions.append({
+                "question_id": question['id'],
+                "title": question['title'],
+                "ref": question['ref']
             })
 
-            max_dt = max(record_dt, max_dt)
+        return sub_questions
 
-    max_dt = max(now_parsed, max_dt)
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        """
+        Add additional data and nested fields to top level
+        """
+        sub_questions ={} #Creating a blank dictionary to store records of sub_questions,if any
 
-    write_records(atx, 'landings', landings_data_rows)
-    bookmark_value = construct_bookmark('landings', max_dt)
-    write_forms_state(atx, 'landings', form_id, bookmark_value)
+        #If type of question is group, i.e. it has sub_questions, then fetch those sub_questions
+        if record.get('type') == 'group':
+            sub_questions['sub_questions'] = self.fetch_sub_questions(record)
+
+        #If sub_questions are fetched then add those in this field and display the same, else don't display this field
+        record.update({
+            "form_id": additional_data['form_id'],
+            "question_id": record['id']
+            }|sub_questions)
+
+class SubmittedLandings(IncrementalStream):
+    tap_stream_id = 'submitted_landings'
+    replication_keys = ['submitted_at']
+    key_properties = ['landing_id']
+    endpoint = 'forms/{}/responses'
+    children = ['answers']
+    params = {
+                'since': '',
+                'page_size': '',
+                'completed': True
+            }
+    data_key = 'items'
+    child_data_key = 'answers'
+
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        """
+        Add additional data and nested fields to top level
+        """
+        record.update({
+                "_sdc_form_id": additional_data["_sdc_form_id"],
+                "user_agent": record["metadata"]["user_agent"],
+                "platform": record["metadata"]["platform"],
+                "referer": record["metadata"]["referer"],
+                "network_id": record["metadata"]["network_id"],
+                "browser": record["metadata"]["browser"],
+                "hidden": json.dumps(record["hidden"]) if "hidden" in record else ""
+        })
+
+class UnsubmittedLandings(IncrementalStream):
+    tap_stream_id = 'unsubmitted_landings'
+    replication_keys = ['landed_at']
+    key_properties = ['landing_id']
+    endpoint = 'forms/{}/responses'
+    params = {
+                'since': '',
+                'page_size': '',
+                'completed': False
+            }
+    data_key = 'items'
+
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        """
+        Add additional data and nested fields to top level
+        """
+        record.update({
+                "_sdc_form_id": additional_data["_sdc_form_id"],
+                "user_agent": record["metadata"]["user_agent"],
+                "platform": record["metadata"]["platform"],
+                "referer": record["metadata"]["referer"],
+                "network_id": record["metadata"]["network_id"],
+                "browser": record["metadata"]["browser"],
+        })
 
 
-def sync_forms(atx):
-    for form_id in atx.config.get('forms').split(','):
-        LOGGER.info('form: {} '.format(form_id))
+class Answers(IncrementalStream):
+    tap_stream_id = 'answers'
+    replication_keys = ['submitted_at']
+    key_properties = ['landing_id', 'question_id']
+    parent = 'submitted_landings'
+    data_key = 'answers'
 
-        # pull back the form question details
-        if 'questions' in atx.selected_stream_ids:
-            sync_form_definition(atx, form_id)
+    def add_fields_at_1st_level(self, record, additional_data = {}):
+        """
+        Add additional data and nested fields to top level
+        """
+        data_type = record.get('type')
 
-        if 'landings' in atx.selected_stream_ids:
-            sync_landings(atx, form_id)
+        # Transform data_value according to data_type
+        if data_type in ['choice', 'choices', 'payment']:
+            answer_value = json.dumps(record.get(data_type))
+        elif data_type in ['number', 'boolean']:
+            answer_value = str(record.get(data_type))
+        else:
+            answer_value = record.get(data_type)
 
-        should_sync_forms = False
-        for stream_name in FORM_STREAMS:
-            should_sync_forms = should_sync_forms or (stream_name in atx.selected_stream_ids)
-        if not should_sync_forms:
-            continue
+        record.update({
+            "_sdc_form_id": additional_data['_sdc_form_id'],
+            "landing_id": additional_data.get('landing_id'),
+            "question_id": record.get('field',{}).get('id'),
+            "type": record.get('field',{}).get('type'),
+            "ref": record.get('field',{}).get('ref'),
+            "data_type": data_type,
+            "submitted_at": additional_data.get('submitted_at'),
+            "answer": answer_value
+        })
 
-        # start_date is defaulted in the config file 2018-01-01
-        # if there's no default date and it gets set to now
-        now_parsed = pendulum.now(pytz.utc)
-        s_d = now_parsed.replace(hour=0, minute=0, second=0, microsecond=0)
-        start_date = pendulum.parse(atx.config.get('start_date', s_d.isoformat()))
-
-        # if the state file has a date_to_resume, we use it as it is.
-        # if it doesn't exist, we overwrite by start date
-        s_d = start_date.strftime("%Y-%m-%d %H:%M:%S")
-        last_date = pendulum.parse(get_bookmark_value(atx.state, stream_name, form_id, default=s_d))
-        LOGGER.info('last_date: {} '.format(last_date))
-
-        # no real reason to assign this other than the naming
-        # makes better sense once we go into the loop
-        current_date = last_date
-
-        page_count = 0
-
-        ut_current_date = int(current_date.timestamp())
-        LOGGER.info('ut_current_date: {} '.format(ut_current_date))
-
-        page_count, max_submitted_at, max_token = sync_form(atx, form_id, ut_current_date)
-
-        parsed_max_submitted_at = pendulum.parse(max_submitted_at)
-        bookmark_value = construct_bookmark(stream_name, parsed_max_submitted_at)
-
-        # if the max responses were returned, we have to make the call again
-        # using the max_token from the initial call.
-        while page_count > 1:
-            page_count, max_submitted_at, max_token = sync_form(atx,
-                                                                form_id,
-                                                                ut_current_date,
-                                                                token=max_token,
-                                                                next_page=True)
-
-            parsed_max_submitted_at = pendulum.parse(max_submitted_at)
-            bookmark_value = construct_bookmark(stream_name, parsed_max_submitted_at)
-            write_forms_state(atx, stream_name, form_id, bookmark_value)
-
-        # check if bookmark is in the past
-        updated_bookmark_value = max(parsed_max_submitted_at, now_parsed)
-        bookmark_value = construct_bookmark(stream_name, updated_bookmark_value)
-
-        # if the prior sync is successful it will write the date_to_resume bookmark
-        write_forms_state(atx, stream_name, form_id, bookmark_value)
-
-    if 'forms' in atx.selected_stream_ids:
-        state = sync_latest_forms(atx)
-        singer.write_state(state)
+STREAMS = {
+    "forms": Forms,
+    "questions": Questions,
+    "submitted_landings": SubmittedLandings,
+    "unsubmitted_landings": UnsubmittedLandings,
+    "answers": Answers,
+}

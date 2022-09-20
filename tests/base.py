@@ -7,8 +7,7 @@ import os
 from datetime import timedelta
 from datetime import datetime as dt
 
-from singer import get_logger
-from tap_tester import connections, menagerie, runner
+from tap_tester import connections, menagerie, runner, LOGGER
 
 
 class TypeformBaseTest(unittest.TestCase):
@@ -27,8 +26,11 @@ class TypeformBaseTest(unittest.TestCase):
     INCREMENTAL = "INCREMENTAL"
     FULL_TABLE = "FULL_TABLE"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
+    RECORD_REPLICATION_KEY_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
     BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00+00:00"
-    LOGGER = get_logger()
+    OBEYS_START_DATE = "obey-start-date"
+    PAGE_SIZE = 1000
+    FORM_PAGE_SIZE = 200
 
     start_date = '2021-05-10T00:00:00Z'
 
@@ -39,7 +41,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     @staticmethod
     def get_type():
-        """the expected url route ending"""
+        """The expected url route ending"""
         return "platform.typeform"
 
     def get_properties(self, original: bool = True):
@@ -70,21 +72,31 @@ class TypeformBaseTest(unittest.TestCase):
             "answers": {
                 self.PRIMARY_KEYS: {"landing_id", "question_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"landed_at"}
+                self.REPLICATION_KEYS: {"submitted_at"},
+                self.OBEYS_START_DATE: True
             },
-            "landings": {
+            "submitted_landings": {
                 self.PRIMARY_KEYS: {"landing_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"landed_at"}
+                self.REPLICATION_KEYS: {"submitted_at"},
+                self.OBEYS_START_DATE: True
+            },
+            "unsubmitted_landings": {
+                self.PRIMARY_KEYS: {"landing_id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"landed_at"},
+                self.OBEYS_START_DATE: True
             },
             "questions": {
                 self.PRIMARY_KEYS: {"form_id", "question_id"},
                 self.REPLICATION_METHOD: self.FULL_TABLE,
+                self.OBEYS_START_DATE: False
             },
             "forms": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"last_updated_at"}
+                self.REPLICATION_KEYS: {"last_updated_at"},
+                self.OBEYS_START_DATE: True
             }
         }
 
@@ -102,7 +114,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     def expected_primary_keys(self):
         """
-        return a dictionary with key of table name
+        return a dictionary with the key of table name
         and value as a set of primary key fields
         """
         return {table: properties.get(self.PRIMARY_KEYS, set())
@@ -111,7 +123,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     def expected_replication_keys(self):
         """
-        return a dictionary with key of table name
+        return a dictionary with the key of table name
         and value as a set of replication key fields
         """
         return {table: properties.get(self.REPLICATION_KEYS, set())
@@ -120,7 +132,7 @@ class TypeformBaseTest(unittest.TestCase):
 
     def expected_foreign_keys(self):
         """
-        return a dictionary with key of table name
+        return a dictionary with the key of table name
         and value as a set of foreign key fields
         """
         return {table: properties.get(self.FOREIGN_KEYS, set())
@@ -128,14 +140,16 @@ class TypeformBaseTest(unittest.TestCase):
                 in self.expected_metadata().items()}
 
     def expected_automatic_fields(self):
-        auto_fields = {}
-        for k, v in self.expected_metadata().items():
-            auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | v.get(self.REPLICATION_KEYS, set()) \
-                | v.get(self.FOREIGN_KEYS, set())
-        return auto_fields
+        """
+        Return a dictionary with the key of the table name
+        and value as a set of automatic key fields
+        """
+        return {table: ((self.expected_primary_keys().get(table) or set()) |
+                        (self.expected_replication_keys().get(table) or set()))
+                for table in self.expected_metadata()}
 
     def expected_replication_method(self):
-        """return a dictionary with key of table name nd value of replication method"""
+        """return a dictionary with the key of table name and value of replication method"""
         return {table: properties.get(self.REPLICATION_METHOD, None)
                 for table, properties
                 in self.expected_metadata().items()}
@@ -153,7 +167,7 @@ class TypeformBaseTest(unittest.TestCase):
     def run_and_verify_check_mode(self, conn_id):
         """
         Run the tap in check mode and verify it succeeds.
-        This should be ran prior to field selection and initial sync.
+        This should run before field selection and initial sync.
         Return the connection id and found catalogs from menagerie.
         """
         # run in check mode
@@ -169,7 +183,7 @@ class TypeformBaseTest(unittest.TestCase):
         found_catalog_names = set(map(lambda c: c['stream_name'], found_catalogs))
 
         self.assertSetEqual(self.expected_streams(), found_catalog_names, msg="discovered schemas do not match")
-        print("discovered schemas are OK")
+        LOGGER.info("discovered schemas are OK")
 
         return found_catalogs
 
@@ -193,7 +207,7 @@ class TypeformBaseTest(unittest.TestCase):
             sum(sync_record_count.values()), 0,
             msg="failed to replicate any data: {}".format(sync_record_count)
         )
-        print("total replicated row count: {}".format(sum(sync_record_count.values())))
+        LOGGER.info("total replicated row count: {}".format(sum(sync_record_count.values())))
 
         return sync_record_count
 
@@ -202,7 +216,7 @@ class TypeformBaseTest(unittest.TestCase):
                                                      test_catalogs,
                                                      select_all_fields=True):
         """
-        Perform table and field selection based off of the streams to select
+        Perform table and field selection based on the streams to select
         set and field selection parameters.
         Verify this results in the expected streams selected and all or no
         fields selected for those streams.
@@ -222,7 +236,7 @@ class TypeformBaseTest(unittest.TestCase):
 
             # Verify all testable streams are selected
             selected = catalog_entry.get('annotated-schema').get('selected')
-            print("Validating selection on {}: {}".format(cat['stream_name'], selected))
+            LOGGER.info("Validating selection on {}: {}".format(cat['stream_name'], selected))
             if cat['stream_name'] not in expected_selected:
                 self.assertFalse(selected, msg="Stream selected, but not testable.")
                 continue # Skip remaining assertions if we aren't selecting this stream
@@ -232,7 +246,7 @@ class TypeformBaseTest(unittest.TestCase):
                 # Verify all fields within each selected stream are selected
                 for field, field_props in catalog_entry.get('annotated-schema').get('properties').items():
                     field_selected = field_props.get('selected')
-                    print("\tValidating selection on {}.{}: {}".format(
+                    LOGGER.info("\tValidating selection on {}.{}: {}".format(
                         cat['stream_name'], field, field_selected))
                     self.assertTrue(field_selected, msg="Field not selected.")
             else:
