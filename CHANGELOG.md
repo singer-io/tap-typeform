@@ -1,34 +1,11 @@
 # Changelog
 
 ## 2.0.0
- * [#62](https://github.com/singer-io/tap-typeform/pull/62) Fixed Community issue
-   * Added field sub_questions for the Question group to resove issue [#59](https://github.com/singer-io/tap-typeform/issues/59).
-   * Added function fetch_sub_questions to fetch data for sub-questions.
- * [#63](https://github.com/singer-io/tap-typeform/pull/63) Add missing schema fields
-   * Added missing fields according to the API documentation for `forms` stream schema
- * [#64](https://github.com/singer-io/tap-typeform/pull/64) Class-based implementation. 
-   * Created functionality-wise separate files - schema, discover, sync, streams.
-   * Moved logic of REST API call and error handling to client.py.
-   * Created class for incremental, full_table sync.
-   * Created parent class and class for each stream.
-   * Added details code comments for each function.
-   * Added detailed unit test case.
-   * Removed unnecessary unit test case.
-   * Added implementation to write separate bookmark for child and parent stream.
-   * Tap use a minimum bookmark among the selected parent and its child stream.
-   * Tap write maximum bookmark for all selected parents and its child's stream
-   * Tap write all child records of newly updated parent records.
-   * Tap write replication key value of parent's record in the state of child stream.
- * [#65](https://github.com/singer-io/tap-typeform/pull/65) Add tap-tester tests
-    * Updated several test cases according to the code changes
-    * Skipped missing fields from the all_fields test case
-    * Added assertion for primary keys in the automatic_fields test
-    * Added an assertion that replication value is greater than the bookmark in bookmarks test case
-    * Added an assertion for no duplicate metadata entry in the discover test case
-    * Added an assertion for actual replication that matches our expected replication method in the discover test case
-    * Added pagination test case
-    * Added replication key is greater or equal to start_date in start_date test
-    * Added primary keys assertion in start_date test
+  * Adds field `sub_questions` for the `questions` group [#62](https://github.com/singer-io/tap-typeform/pull/62)
+  * Adds missing fields for streams `forms` and `questions` [#63](https://github.com/singer-io/tap-typeform/pull/63)
+  * Bookmark changes for parent and child streams and code refactoring [#64](https://github.com/singer-io/tap-typeform/pull/64)
+  * Modifies integration tests for code changes [#65](https://github.com/singer-io/tap-typeform/pull/65)
+
 ## 1.4.5
   * Fix `landings` stream to be incremental [#58](https://github.com/singer-io/tap-typeform/pull/58)
 
