@@ -3,7 +3,7 @@
 ## 2.0.0
   * Splits `landings` stream to `submitted_landings` and `unsubmitted_landings` streams with new replication keys [#64](https://github.com/singer-io/tap-typeform/pull/64)
   * Adds field `sub_questions` for the `questions` group [#62](https://github.com/singer-io/tap-typeform/pull/62)
-  * Adds missing fields for streams `forms` and `questions` [#63](https://github.com/singer-io/tap-typeform/pull/63)
+  * Adds missing fields for `forms` and `questions` streams [#63](https://github.com/singer-io/tap-typeform/pull/63)
   * Bookmark changes for parent and child streams and code refactoring [#64](https://github.com/singer-io/tap-typeform/pull/64)
   * Modifies integration tests for code changes [#65](https://github.com/singer-io/tap-typeform/pull/65)
 
