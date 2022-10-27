@@ -202,8 +202,9 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
             "platform": "other",
             "referer": "",
             "network_id": "",
-            "browser": "default"
-        }
+            "browser": "default",
+        },
+        "tags": [ "noodle", "weekly" ]
     }
     sub_landings_exp_record = {
         **sub_landings_record,
