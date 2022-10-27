@@ -213,6 +213,7 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "network_id": "",
         "browser": "default",
         "hidden": "",
+        "tags": [ "noodle", "weekly" ],
         "_sdc_form_id": "form1"
     }
     unsub_landings_record = {
