@@ -144,6 +144,25 @@ class TestIncrementalStream(unittest.TestCase):
         # Verify write records is called if the stream is selected
         self.assertEqual(mock_write_records.call_count, call_count)
 
+    @parameterized.expand([(['answers'], 1)])
+    @mock.patch("tap_typeform.streams.write_records")
+    @mock.patch("tap_typeform.streams.Answers.add_fields_at_1st_level")
+    def test_child_sync_null_key(self, selected_streams, call_count, mock_add_field, mock_write_records, mock_add_field2, mock_request):
+        """
+        Test child sync for the scenario:
+            - If the child is selected and the child key is null then `write_records` will not be called
+        """
+        test_stream = SubmittedLandings()
+        test_stream.records_count = {"answers": 0}
+        test_stream.child_data_key = 'answers'
+
+        record = {"landing_id": 1, "submitted_at": "", "answers": None}
+
+        test_stream.sync_child_stream(record, catalogs, {}, selected_streams, "form1", "", "")
+
+        # Verify write records is NOT called if the child key value is null
+        self.assertEqual(mock_write_records.call_count, 0)
+
 
 @mock.patch("tap_typeform.client.Client.request")
 class TestFormsStream(unittest.TestCase):
