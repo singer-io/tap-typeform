@@ -123,7 +123,7 @@ class IncrementalStream(Stream):
                         self.records_count[self.tap_stream_id] += 1
 
                     # Write selected child records
-                    if self.children and self.child_data_key in record:
+                    if self.children and record.get(self.child_data_key):
                         max_bookmark =  self.sync_child_stream(record, catalogs, state, selected_stream_ids,form_id, start_date, max_bookmark)
 
         return max_bookmark
