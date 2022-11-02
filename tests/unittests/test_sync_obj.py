@@ -106,8 +106,8 @@ class TestIncrementalStream(unittest.TestCase):
         test_stream.records_count = {"submitted_landings": 0}
 
         records = [
-            {"landing_id": 1, "submitted_at": "", "answers": []},
-            {"landing_id": 2, "submitted_at": "", "answers": []},
+            {"landing_id": 1, "submitted_at": "", "answers": [11]},
+            {"landing_id": 2, "submitted_at": "", "answers": [12]},
             {"landing_id": 3, "submitted_at": ""},
         ]
 
