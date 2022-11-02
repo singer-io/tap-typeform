@@ -90,7 +90,7 @@ class Stream:
             child_obj = STREAMS[child]()
             child_bookmark = get_bookmark(state, child_obj.tap_stream_id, form_id, self.replication_keys[0], start_date)
 
-            if child in selected_stream_ids and record[child_obj.replication_keys[0]] >= child_bookmark:
+            if child in selected_stream_ids and record[child_obj.replication_keys[0]] >= child_bookmark and record[self.child_data_key]:
                 child_catalog = get_schema(catalogs, child)
                 for rec in record[self.child_data_key]:
                     child_obj.add_fields_at_1st_level(rec, {**record, "_sdc_form_id": form_id})
@@ -123,7 +123,7 @@ class IncrementalStream(Stream):
                         self.records_count[self.tap_stream_id] += 1
 
                     # Write selected child records
-                    if self.children and record.get(self.child_data_key):
+                    if self.children and self.child_data_key in record:
                         max_bookmark =  self.sync_child_stream(record, catalogs, state, selected_stream_ids,form_id, start_date, max_bookmark)
 
         return max_bookmark
