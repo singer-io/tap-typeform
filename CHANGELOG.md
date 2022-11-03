@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1
+  * Adds a condition to check if `submitted_landings` stream's child key is blank [#69](https://github.com/singer-io/tap-typeform/pull/69)
+
 ## 2.0.0
   * Splits `landings` stream to `submitted_landings` and `unsubmitted_landings` streams with new replication keys [#64](https://github.com/singer-io/tap-typeform/pull/64)
   * Adds field `sub_questions` for the `questions` group [#62](https://github.com/singer-io/tap-typeform/pull/62)
