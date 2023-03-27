@@ -8,7 +8,11 @@ def _forms_to_list(config, keyword='forms'):
     """
     Splits entries into a list and strips out surrounding blank spaces.
     """
-    return set(map(str.strip, config.get(keyword).split(',')))
+    forms = config.get(keyword)
+    if forms is None:
+        return None
+    
+    return set(map(str.strip, forms.split(',')))
 
 
 def write_schemas(stream_id, catalog, selected_streams):
@@ -50,7 +54,7 @@ def get_stream_to_sync(selected_streams):
             streams_to_sync.append(stream_name)
     return streams_to_sync
 
-def sync(client, config, state, catalog):
+def sync(client, config, state, catalog, forms_to_sync):
     """
     Sync selected streams.
     """
@@ -78,7 +82,7 @@ def sync(client, config, state, catalog):
         elif not stream_obj.parent:
             write_schemas(stream, catalog, selected_streams)
 
-            for form in _forms_to_list(config):
+            for form in forms_to_sync:
 
                 stream_obj.sync_obj(client, state, catalog['streams'], form, config["start_date"],
                                     selected_streams, records_count)
