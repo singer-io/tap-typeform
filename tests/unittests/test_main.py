@@ -90,22 +90,29 @@ class TestValidateFormIds(unittest.TestCase):
         """
         Test when proper form ids are passed, No error raised.
         """
-        config = {"forms": "form1,form2"}
+        input_value = "form1,form2"
+        config = {"forms": input_value}
         mock_forms.return_value.get_forms.return_value = [[{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
 
-        # Verify no exception was raised
-        validate_form_ids(None, config)
+        forms = validate_form_ids(None, config)
+        self.assertEqual(input_value, ','.join(forms))
 
+    # UPDATE: fetch all forms
+    # also: test for no value in forms field?
     def test_no_form_given(self, mock_forms):
         """
         Test when no forms are given in config, an error is raised with an expected message.
         """
         config = {}
-        with self.assertRaises(NoFormsProvidedError) as e:
-            validate_form_ids(None, config)
+        forms_from_typeform = [{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]
+        mock_forms.return_value.get_forms.return_value = [forms_from_typeform]
+        forms = validate_form_ids(None, config)
+        # with self.assertRaises(NoFormsProvidedError) as e:
+            # validate_form_ids(None, config)
 
         # Verify exception raised with expected error message
-        self.assertEqual(str(e.exception), "No forms were provided in the config")
+        # self.assertEqual(str(e.exception), "No forms were provided in the config")
+        self.assertListEqual(forms, [f['id'] for f in forms_from_typeform])
     
     def test_mismatch_forms(self, mock_forms):
         """
