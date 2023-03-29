@@ -65,6 +65,27 @@ class TestFullTableStream(unittest.TestCase):
             expected_records
         )
 
+    @mock.patch("tap_typeform.streams.write_records")
+    @mock.patch("tap_typeform.client.Client.request")
+    def test_sync_object_with_missing_key(self, mock_request, mock_write_records):
+        """
+        Test `sync_obj` for full table streams if response does not include the stream's key.
+        """
+        client = Client({"token": ""})
+        test_stream = Questions()
+        expected_records = None
+        
+        mock_request.return_value = {}
+
+        test_stream.sync_obj(client, {}, catalogs, "form1", "", ['questions'], {'questions': 0})
+
+        # Verify that write_records is called with the expected list of records
+        mock_write_records.assert_called_with(
+            get_stream_catalog("questions", True),
+            "questions",
+            expected_records
+        )
+
 
 @mock.patch("tap_typeform.client.Client.request")
 @mock.patch("tap_typeform.streams.SubmittedLandings.add_fields_at_1st_level")

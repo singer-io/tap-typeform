@@ -13,9 +13,6 @@ LOGGER = singer.get_logger()
 class FormMistmatchError(Exception):
     pass
 
-class NoFormsProvidedError(Exception):
-    pass
-
 def validate_form_ids(client, config):
     """Validate the form ids passed in the config"""
     form_stream = Forms()
@@ -47,11 +44,9 @@ def main():
     forms_to_sync = validate_form_ids(client, config)
 
     if args.discover:
-        LOGGER.info("discover")
         catalog = _discover()
         catalog.dump()
     else:
-        LOGGER.info("sync")
         catalog = args.catalog \
             if args.catalog else _discover()
         _sync(client, config, args.state, catalog.to_dict(), forms_to_sync)

@@ -85,7 +85,7 @@ def sync(client, config, state, catalog, forms_to_sync):
             write_schemas(stream, catalog, selected_streams)
 
             for form in forms_to_sync:
-                LOGGER.info(f"stream_obj {stream_obj}")
+                
                 stream_obj.sync_obj(client, state, catalog['streams'], form, config["start_date"],
                                     selected_streams, records_count)
 
