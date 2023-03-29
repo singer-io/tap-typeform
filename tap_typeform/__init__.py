@@ -6,7 +6,7 @@ from tap_typeform.sync import _forms_to_list, sync as _sync
 from tap_typeform.client import Client
 from tap_typeform.streams import Forms
 
-REQUIRED_CONFIG_KEYS = ["start_date", "token"]
+REQUIRED_CONFIG_KEYS = ["start_date", "token", "forms"]
 
 LOGGER = singer.get_logger()
 
@@ -20,26 +20,22 @@ def validate_form_ids(client, config):
     """Validate the form ids passed in the config"""
     form_stream = Forms()
 
-    if not config.get('forms'):
-        LOGGER.info("No form ids provided in config; fetching all forms")
-
     config_forms = _forms_to_list(config)
-
     api_forms = {form.get('id') for res in form_stream.get_forms(client) for form in res if form != ''}
 
-    if config_forms is not None:
-        if len(config_forms) == 0:
-            raise(NoFormsProvidedError("Forms keyword exists in config, but no forms provided"))
+    if config_forms is None:
+        LOGGER.info("No form ids provided in config; fetching all forms")
+        return api_forms
+    
+    mismatched_forms = config_forms.difference(api_forms)
+    if len(mismatched_forms) > 0:
+        # Raise an error if any form-id from config is not matching
+        # from ids from API response
+        raise FormMistmatchError("FormMistmatchError: unable to find forms {}".format(mismatched_forms))
+    
+    return config_forms
 
-        mismatched_forms = config_forms.difference(api_forms)
-        if len(mismatched_forms) > 0:
-            # Raise an error if any form-id from config is not matching
-            # from ids from API response
-            raise FormMistmatchError("FormMistmatchError: unable to find forms {}".format(mismatched_forms))
-        
-        return config_forms
-
-    return api_forms        
+    
 
 
 @utils.handle_top_exception(LOGGER)

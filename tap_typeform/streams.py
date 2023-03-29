@@ -173,11 +173,12 @@ class FullTableStream(Stream):
         stream_catalog = get_schema(catalogs, self.tap_stream_id)
         response = client.request(full_url, params=self.params)
 
-        for record in response[self.data_key]:
-            self.add_fields_at_1st_level(record,{"form_id": form_id})
+        if self.data_key in response:
+            for record in response[self.data_key]:
+                self.add_fields_at_1st_level(record,{"form_id": form_id})
 
-        write_records(stream_catalog, self.tap_stream_id, response[self.data_key])
-        self.records_count[self.tap_stream_id] += len(response[self.data_key])
+            write_records(stream_catalog, self.tap_stream_id, response[self.data_key])
+            self.records_count[self.tap_stream_id] += len(response[self.data_key])
 
 class Forms(IncrementalStream):
     tap_stream_id = 'forms'
