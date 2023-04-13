@@ -1,18 +1,19 @@
 import unittest
 from unittest import mock
-from tap_typeform import (main, NoFormsProvidedError,
-                            FormMistmatchError, validate_form_ids)
+from tap_typeform import (main,
+                          FormMistmatchError, validate_form_ids)
 from singer.catalog import Catalog
 
 
 class MockArgs:
     """Mock args object class"""
 
-    def __init__(self, config = None, catalog = None, state = {}, discover = False) -> None:
-        self.config = config 
+    def __init__(self, config=None, catalog=None, state={}, discover=False) -> None:
+        self.config = config
         self.catalog = catalog
         self.state = state
         self.discover = discover
+
 
 @mock.patch("tap_typeform.validate_form_ids")
 @mock.patch("singer.utils.parse_args")
@@ -31,23 +32,23 @@ class TestMainWorkflow(unittest.TestCase):
         Test `_discover` function is called for discover mode.
         """
         mock_discover.dump.return_value = dict()
-        mock_args.return_value = MockArgs(discover = True, config = self.mock_config)
+        mock_args.return_value = MockArgs(discover=True, config=self.mock_config)
         main()
 
         self.assertTrue(mock_discover.called)
         self.assertFalse(mock_sync.called)
-
 
     def test_sync_with_catalog(self, mock_sync, mock_discover, mock_args, mock_validate):
         """
         Test sync mode with catalog given in args.
         """
 
-        mock_args.return_value = MockArgs(config=self.mock_config, catalog=Catalog.from_dict(self.mock_catalog))
+        mock_args.return_value = MockArgs(config=self.mock_config,
+                                          catalog=Catalog.from_dict(self.mock_catalog))
         main()
 
         # Verify `_sync` is called with expected arguments
-        mock_sync.assert_called_with(mock.ANY, self.mock_config, {}, self.mock_catalog)
+        mock_sync.assert_called_with(mock.ANY, self.mock_config, {}, self.mock_catalog, mock_validate.return_value)
 
         # verify `_discover` function is not called
         self.assertFalse(mock_discover.called)
@@ -63,7 +64,7 @@ class TestMainWorkflow(unittest.TestCase):
         main()
 
         # Verify `_sync` is called with expected arguments
-        mock_sync.assert_called_with(mock.ANY, self.mock_config, {}, {"schema": "", "metadata": ""})
+        mock_sync.assert_called_with(mock.ANY, self.mock_config, {}, {"schema": "", "metadata": ""}, mock_validate.return_value)
 
         # verify `_discover` function is  called
         self.assertTrue(mock_discover.called)
@@ -73,11 +74,13 @@ class TestMainWorkflow(unittest.TestCase):
         Test sync mode with the state given in args.
         """
         mock_state = {"bookmarks": {"projects": ""}}
-        mock_args.return_value = MockArgs(config=self.mock_config, catalog=Catalog.from_dict(self.mock_catalog), state=mock_state)
+        mock_args.return_value = MockArgs(config=self.mock_config,
+                                          catalog=Catalog.from_dict(self.mock_catalog),
+                                          state=mock_state)
         main()
 
         # Verify `_sync` is called with expected arguments
-        mock_sync.assert_called_with(mock.ANY, self.mock_config, mock_state, self.mock_catalog)
+        mock_sync.assert_called_with(mock.ANY, self.mock_config, mock_state, self.mock_catalog, mock_validate.return_value)
 
 
 @mock.patch("tap_typeform.Forms")
@@ -85,13 +88,14 @@ class TestValidateFormIds(unittest.TestCase):
     """
     Test `validate_form_ids` function.
     """
-    
+
     def test_all_correct_forms(self, mock_forms):
         """
         Test when proper form ids are passed, No error raised.
         """
         config = {"forms": "form1,form2"}
-        mock_forms.return_value.get_forms.return_value = [[{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
+        mock_forms.return_value.get_forms.return_value = [
+            [{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
 
         # Verify no exception was raised
         validate_form_ids(None, config)
@@ -101,21 +105,22 @@ class TestValidateFormIds(unittest.TestCase):
         Test when no forms are given in config, an error is raised with an expected message.
         """
         config = {}
-        with self.assertRaises(NoFormsProvidedError) as e:
+        with self.assertLogs(level='INFO') as log_statement:
             validate_form_ids(None, config)
+            self.assertEqual(log_statement.output,
+                             ['INFO:root:No form ids provided in config, fetching all forms'])
 
-        # Verify exception raised with expected error message
-        self.assertEqual(str(e.exception), "No forms were provided in the config")
-    
     def test_mismatch_forms(self, mock_forms):
         """
         Test wrong form ids given in config raise MismatchError.
         """
         config = {"forms": "form1,form4"}
-        mock_forms.return_value.get_forms.return_value = [[{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
-        
+        mock_forms.return_value.get_forms.return_value = [
+            [{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
+
         with self.assertRaises(FormMistmatchError) as e:
             validate_form_ids(None, config)
 
         # Verify exception raised with expected error message
-        self.assertEqual(str(e.exception), "FormMistmatchError: forms {} not returned by API".format({"form4"}))
+        self.assertEqual(str(e.exception),
+                         "FormMistmatchError: forms {} not returned by API".format({"form4"}))
