@@ -173,7 +173,7 @@ class FullTableStream(Stream):
         response = client.request(full_url, params=self.params)
 
         if self.data_key not in response:
-            LOGGER.info('Seems like there are no questions associated with form {}'.format(form_id))
+            LOGGER.info('There are no questions associated with form {}'.format(form_id))
             return
 
         for record in response[self.data_key]:
