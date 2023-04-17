@@ -13,8 +13,6 @@ LOGGER = singer.get_logger()
 class FormMistmatchError(Exception):
     pass
 
-class NoFormsProvidedError(Exception):
-    pass
 
 def validate_form_ids(client, config):
     """Validate the form ids passed in the config"""

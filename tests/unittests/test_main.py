@@ -98,17 +98,29 @@ class TestValidateFormIds(unittest.TestCase):
             [{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
 
         # Verify no exception was raised
-        validate_form_ids(None, config)
+        api_forms = validate_form_ids(None, config)
+
+        # Assertion to test validate_form_ids return only the configured form IDs
+        self.assertEqual(api_forms, {"form1", "form2"})
 
     def test_no_form_given(self, mock_forms):
         """
-        Test when no forms are given in config, an error is raised with an expected message.
+        Test when no forms are given in config, a statement is logged with an expected message.
         """
         config = {}
+        mock_forms.return_value.get_forms.return_value = [
+            [{'id': 'form1'}, {'id': 'form2'}, {'id': 'form3'}]]
         with self.assertLogs(level='INFO') as log_statement:
-            validate_form_ids(None, config)
+            api_forms = validate_form_ids(None, config)
             self.assertEqual(log_statement.output,
                              ['INFO:root:No form ids provided in config, fetching all forms'])
+
+        # Assertion to make sure we call the get_forms function once
+        self.assertEqual(mock_forms.return_value.get_forms.call_count, 1)
+
+        # Assertion to test validate_form_ids returns all the form IDs from API response
+        self.assertEqual(api_forms, {"form1", "form2", "form3"})
+
 
     def test_mismatch_forms(self, mock_forms):
         """
