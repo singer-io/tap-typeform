@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.0
+  * Fixes/Handles following [#73](https://github.com/singer-io/tap-typeform/pull/73)
+    * Syncs data for all forms if `forms` field is missing in config and makes the field as optional
+    * Prevents tap from failing when there are no questions associated with a form
+
 ## 2.0.1
   * Adds a condition to check if `submitted_landings` stream's child key is blank [#69](https://github.com/singer-io/tap-typeform/pull/69)
 

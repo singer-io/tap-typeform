@@ -1,8 +1,7 @@
 import unittest
 from unittest import mock
-from parameterized import parameterized
 from tap_typeform.sync import (sync, get_stream_to_sync,
-                                get_selected_streams, write_schemas, _forms_to_list)
+                                get_selected_streams, write_schemas)
 
 def get_stream_catalog(stream_name, selected = False):
     return {
@@ -27,7 +26,6 @@ records_count = {
     "answers": 0
 }
 
-@mock.patch("tap_typeform.sync.pendulum")
 @mock.patch("tap_typeform.sync.get_selected_streams")
 @mock.patch("tap_typeform.sync.get_stream_to_sync")
 @mock.patch("tap_typeform.sync.write_schemas")
@@ -40,14 +38,14 @@ class TestSyncFunction(unittest.TestCase):
     config = {'start_date': "START_DATE"}
 
     @mock.patch("tap_typeform.streams.Forms.sync_obj")
-    def test_syncing_form(self, mock_sync_obj, mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
+    def test_syncing_form(self, mock_sync_obj, mock_write_schema, mock_sync_streams, mock_selected_streams):
         """
         Test for `forms` stream, its sync_object is called with proper arguments.
         """
         mock_selected_streams.return_value = ['forms']
         mock_sync_streams.return_value = ['forms']
 
-        sync(mock.Mock(), self.config, {}, self.catalog)
+        sync(mock.Mock(), self.config, {}, self.catalog, {'forms'})
 
         # Verify that write schema is called once for one selected stream
         self.assertEqual(mock_write_schema.call_count, 1)
@@ -57,17 +55,15 @@ class TestSyncFunction(unittest.TestCase):
         mock_sync_obj.assert_called_with(mock.ANY, {}, {}, "START_DATE", ['forms'], records_count)
 
     @mock.patch("tap_typeform.streams.SubmittedLandings.sync_obj")
-    @mock.patch("tap_typeform.sync._forms_to_list")
-    def test_only_child_selected(self, mock_form_list, mock_sync_obj,
-                                    mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
+    def test_only_child_selected(self, mock_sync_obj,
+                                    mock_write_schema, mock_sync_streams, mock_selected_streams):
         """
         Test for only child selected, parent sync object is called with proper arguments.
         """
-        mock_form_list.return_value = ['form1']
         mock_selected_streams.return_value = ['answers']
         mock_sync_streams.return_value = ['submitted_landings', 'answers']
 
-        sync(mock.Mock(), self.config, {}, self.catalog)
+        sync(mock.Mock(), self.config, {}, self.catalog, {"form1"})
 
         # Verify that write schema is called once for one selected stream
         self.assertEqual(mock_write_schema.call_count, 1)
@@ -77,13 +73,11 @@ class TestSyncFunction(unittest.TestCase):
         mock_sync_obj.assert_called_with(mock.ANY, {}, {}, 'form1', "START_DATE", ['answers'], records_count)
 
     @mock.patch("tap_typeform.streams.SubmittedLandings.sync_obj")
-    @mock.patch("tap_typeform.sync._forms_to_list")
-    def test_for_multiple_forms(self, mock_form_list, mock_sync_obj,
-                                mock_write_schema, mock_sync_streams, mock_selected_streams, mock_pendulum):
+    def test_for_multiple_forms(self, mock_sync_obj,
+                                mock_write_schema, mock_sync_streams, mock_selected_streams):
         """
         Test for only child selected, parent sync object is called with proper arguments.
         """
-        mock_form_list.return_value = ['form1', 'form2', 'form3']
         mock_selected_streams.return_value = ['submitted_landings']
         mock_sync_streams.return_value = ['submitted_landings']
         expected_calls = [
@@ -92,7 +86,7 @@ class TestSyncFunction(unittest.TestCase):
             mock.call(mock.ANY, {}, {}, 'form3', "START_DATE", ['submitted_landings'], records_count),
         ]
 
-        sync(mock.Mock(), self.config, {}, self.catalog)
+        sync(mock.Mock(), self.config, {}, self.catalog, {"form1", "form2", "form3"})
 
         # Verify that write schema is called once for one selected stream
         self.assertEqual(mock_write_schema.call_count, 1)
@@ -202,24 +196,3 @@ class TestWriteSchemas(unittest.TestCase):
         self.assertEqual(mock_write_schema.call_count, 2)
         self.assertIn(mock_write_schema.mock_calls[0], expected_calls)
         self.assertIn(mock_write_schema.mock_calls[1], expected_calls)
-
-
-class TestFormsListParsing(unittest.TestCase):
-    """
-    Test form list parsing and white space handling.
-    """
-
-    @parameterized.expand([
-        ("form1,form2,form3",['form1', 'form2', 'form3']),
-        ("form1, form2, form3",['form1', 'form2', 'form3']),
-        ("    form1, form2   , form3   ",['form1', 'form2', 'form3']),
-    ])
-    def test_forms_to_list(self, forms, expected_list):
-        """
-        Test various test cases for form_list with whitespaces.
-        """
-        config = {'forms': forms}
-        form_list = _forms_to_list(config)
-
-        # Verify that returned list contains expected form_ids
-        self.assertCountEqual(form_list, expected_list)

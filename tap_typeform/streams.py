@@ -1,4 +1,3 @@
-from copy import deepcopy
 import json
 import pendulum
 from datetime import datetime
@@ -173,8 +172,12 @@ class FullTableStream(Stream):
         stream_catalog = get_schema(catalogs, self.tap_stream_id)
         response = client.request(full_url, params=self.params)
 
+        if self.data_key not in response:
+            LOGGER.info('There are no questions associated with form {}'.format(form_id))
+            return
+
         for record in response[self.data_key]:
-            self.add_fields_at_1st_level(record,{"form_id": form_id})
+            self.add_fields_at_1st_level(record, {"form_id": form_id})
 
         write_records(stream_catalog, self.tap_stream_id, response[self.data_key])
         self.records_count[self.tap_stream_id] += len(response[self.data_key])
