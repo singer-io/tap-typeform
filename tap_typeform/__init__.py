@@ -7,16 +7,13 @@ from tap_typeform.context import Context
 from tap_typeform.http import Client
 from tap_typeform import schemas
 
-REQUIRED_CONFIG_KEYS = ["token", "forms", "incremental_range"]
+REQUIRED_CONFIG_KEYS = ["token", "incremental_range"]
 
 LOGGER = singer.get_logger()
 
 #def check_authorization(atx):
 #    atx.client.get('/settings')
 class FormMistmatchError(Exception):
-    pass
-
-class NoFormsProvidedError(Exception):
     pass
 
 
@@ -60,7 +57,7 @@ def discover():
 # this is already defined in schemas.py though w/o dependencies.  do we keep this for the sync?
 def load_schema(tap_stream_id):
     path = "schemas/{}.json".format(tap_stream_id)
-    schema = utils.load_json(get_abs_path(path))
+    schema = utils.load_json(schemas.get_abs_path(path))
     dependencies = schema.pop("tap_schema_dependencies", [])
     refs = {}
     for sub_stream_id in dependencies:
@@ -99,12 +96,12 @@ def validate_form_ids(config):
     """Validate the form ids passed in the config"""
     client = Client(config)
 
+    api_forms = {form.get('id') for form in client.get_forms()}
     if not config.get('forms'):
-        LOGGER.fatal("No forms were provided in config")
-        raise NoFormsProvidedError
+        LOGGER.info("No form ids provided in config, fetching all forms")
+        return api_forms
 
     config_forms = set(_forms_to_list(config))
-    api_forms = {form.get('id') for form in client.get_forms()}
 
     mismatched_forms = _compare_forms(config_forms, api_forms)
 
@@ -112,13 +109,15 @@ def validate_form_ids(config):
         LOGGER.fatal(f"FormMistmatchError: forms {mismatched_forms} not returned by API")
         raise FormMistmatchError
 
+    return config_forms
+
 
 @utils.handle_top_exception(LOGGER)
 def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     atx = Context(args.config, args.state)
+    atx.form_ids = validate_form_ids(args.config)
     if args.discover:
-        validate_form_ids(args.config)
         # the schema is static from file so we don't need to pass in atx for connection info.
         catalog = discover()
         catalog.dump()

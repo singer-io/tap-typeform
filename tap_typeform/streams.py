@@ -339,7 +339,7 @@ def sync_landings(atx, form_id):
 
 
 def sync_forms(atx):
-    for form_id in atx.config.get('forms').split(','):
+    for form_id in atx.form_ids:
         LOGGER.info('form: {} '.format(form_id))
 
         # pull back the form question details
