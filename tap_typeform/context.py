@@ -24,6 +24,7 @@ class Context(object):
         self.now = datetime.utcnow()
         self.stream_map = None
         self.counts = {}
+        self.form_ids = set()
 
     @property
     def catalog(self):
