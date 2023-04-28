@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.0
+  * Syncs data for all forms if forms field is missing in config and makes the field as optional [#74](https://github.com/singer-io/tap-typeform/pull/74)
+
 ## 1.4.5
   * Fix `landings` stream to be incremental [#58](https://github.com/singer-io/tap-typeform/pull/58)
 
