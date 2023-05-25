@@ -222,7 +222,8 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
             "referer": "",
             "network_id": "",
             "browser": "default"
-        }
+        },
+        "tags": ["noodle", "weekly"]
     }
     sub_landings_exp_record = {
         **sub_landings_record,
@@ -232,7 +233,8 @@ class TestAddFieldAt1StLevel(unittest.TestCase):
         "network_id": "",
         "browser": "default",
         "hidden": "",
-        "_sdc_form_id": "form1"
+        "tags": ["noodle", "weekly"],
+        "_sdc_form_id": "form1",
     }
     unsub_landings_record = {
         "metadata": {
