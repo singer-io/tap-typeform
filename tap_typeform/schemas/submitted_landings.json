@@ -36,11 +36,14 @@
     },
     "tags": {
       "type": [
-        "array",
-        "null"
+        "null",
+        "array"
       ],
       "items": {
-        "type": "string"
+        "type": [
+          "null",
+          "string"
+        ]
       }
     },
     "_sdc_form_id": {
