@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.0
+  * Adds `tags` property to `submitted_landings` stream [#75](https://github.com/singer-io/tap-typeform/pull/75)
+
 ## 2.1.0
   * Fixes/Handles following [#73](https://github.com/singer-io/tap-typeform/pull/73)
     * Syncs data for all forms if `forms` field is missing in config and makes the field as optional

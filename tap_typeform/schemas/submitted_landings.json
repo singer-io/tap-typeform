@@ -34,6 +34,12 @@
     "hidden": {
       "type": ["null", "string"]
     },
+    "tags": {
+      "type": ["null", "array"],
+      "items": {
+        "type": ["null", "string"]
+      }
+    },
     "_sdc_form_id": {
       "type": ["null", "string"]
     }

@@ -276,6 +276,7 @@ class SubmittedLandings(IncrementalStream):
         Add additional data and nested fields to top level
         """
         record.update({
+                "tags": record.get("tags"),
                 "_sdc_form_id": additional_data["_sdc_form_id"],
                 "user_agent": record["metadata"]["user_agent"],
                 "platform": record["metadata"]["platform"],
