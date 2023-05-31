@@ -37,7 +37,7 @@
     "tags": {
       "type": ["null", "array"],
       "items": {
-        "type": ["null", "string"]
+        "type": ["string"]
       }
     },
     "_sdc_form_id": {
