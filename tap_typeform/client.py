@@ -3,9 +3,10 @@ import backoff
 import singer
 
 from datetime import timedelta
-from singer.utils import now, strftime
+from singer.utils import now
 from requests.exceptions import ChunkedEncodingError, Timeout, ConnectionError
-from tap_typeform import utils
+from tap_typeform.utils import write_config
+
 
 LOGGER = singer.get_logger()
 
@@ -140,6 +141,10 @@ class Client(object):
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
 
+    @backoff.on_exception(backoff.expo,(Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
+                            max_tries=5, factor=2, jitter=None)
+    @backoff.on_exception(backoff.expo, (TypeformInternalError, TypeformNotAvailableError, TypeformTooManyError, ChunkedEncodingError),
+                            max_tries=3, factor=2)
     def refresh(self):
         """
         Checks token expiry and refreshes token if access token is expired
@@ -149,28 +154,29 @@ class Client(object):
             return
 
         # In dev mode, don't refresh access token
-        if self.dev_mode and self.expires_at:
+        if self.dev_mode:
             if not self.access_token:
                 raise Exception('Access token is missing')
 
             return
 
-        data = self.post('/oauth/token',
-                         auth_call=True,
-                         headers={"Content-Type": "application/x-www-form-urlencoded"},
-                         data={'client_id': self.client_id,
-                               'client_secret': self.client_secret,
-                               'redirect_uri': self.redirect_uri,
-                               'refresh_token': self.refresh_token,
-                               'grant_type': 'refresh_token',
-                               'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read'})
+        response = self.session.request("POST",
+                                    url = self.OAUTH_URL,
+                                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                                    data={'client_id': self.client_id,
+                                        'client_secret': self.client_secret,
+                                        'refresh_token': self.refresh_token,
+                                        'grant_type': 'refresh_token',
+                                        'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read'})
 
+        if response.status_code != 200:
+            raise_for_error(response)
+
+        data = response.json()
         self.refresh_token = data['refresh_token']
         self.access_token = data['access_token']
-        # pad by 10 seconds for clock drift
-        self.expires_at = now() + timedelta(seconds=data['expires_in'] - 10)
 
-        utils.write_config(self.config_path,
+        write_config(self.config_path,
                            {"refresh_token": self.refresh_token,
                             "access_token": self.access_token})
 
