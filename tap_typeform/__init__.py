@@ -38,7 +38,11 @@ def validate_form_ids(client, config):
 def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     config = args.config
-    client = Client(config)
+
+    if args.dev:
+        LOGGER.warning("Executing Tap in Dev mode",)
+
+    client = Client(config, args.config_path, args.dev)
     valid_forms = validate_form_ids(client, config)
     if args.discover:
         catalog = _discover()

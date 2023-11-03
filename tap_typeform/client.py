@@ -2,7 +2,10 @@ import requests
 import backoff
 import singer
 
+from datetime import timedelta
+from singer.utils import now, strftime
 from requests.exceptions import ChunkedEncodingError, Timeout, ConnectionError
+from tap_typeform import utils
 
 LOGGER = singer.get_logger()
 
@@ -113,14 +116,22 @@ class Client(object):
     The client class is used for making REST calls to the Github API.
     """
     BASE_URL = 'https://api.typeform.com'
+    OAUTH_URL = 'https://api.typeform.com/oauth/token'
 
-    def __init__(self, config):
-        self.token = 'Bearer ' + config.get('token')
+    def __init__(self, config, config_path, dev_mode):
         self.metric = config.get('metric')
         self.session = requests.Session()
         self.page_size = MAX_RESPONSES_PAGE_SIZE
         self.form_page_size = FORMS_PAGE_SIZE
+        self.config_path = config_path
         self.get_page_size(config)
+
+        self.client_id = config.get('client_id')
+        self.client_secret = config.get('client_secret')
+        self.refresh_token = config.get('refresh_token')
+        self.access_token = config.get('token')
+        self.dev_mode = dev_mode
+        self.refresh()
 
         # Set and pass request timeout to config param `request_timeout` value.
         config_request_timeout = config.get('request_timeout')
@@ -128,6 +139,40 @@ class Client(object):
             self.request_timeout = float(config_request_timeout)
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
+
+    def refresh(self):
+        """
+        Checks token expiry and refreshes token if access token is expired
+        """
+        # Existing connections won't have refresh token so use the existing access token
+        if not self.refresh_token:
+            return
+
+        # In dev mode, don't refresh access token
+        if self.dev_mode and self.expires_at:
+            if not self.access_token:
+                raise Exception('Access token is missing')
+
+            return
+
+        data = self.post('/oauth/token',
+                         auth_call=True,
+                         headers={"Content-Type": "application/x-www-form-urlencoded"},
+                         data={'client_id': self.client_id,
+                               'client_secret': self.client_secret,
+                               'redirect_uri': self.redirect_uri,
+                               'refresh_token': self.refresh_token,
+                               'grant_type': 'refresh_token',
+                               'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read'})
+
+        self.refresh_token = data['refresh_token']
+        self.access_token = data['access_token']
+        # pad by 10 seconds for clock drift
+        self.expires_at = now() + timedelta(seconds=data['expires_in'] - 10)
+
+        utils.write_config(self.config_path,
+                           {"refresh_token": self.refresh_token,
+                            "access_token": self.access_token})
 
     def get_page_size(self, config):
         """
@@ -161,8 +206,8 @@ class Client(object):
 
         if 'headers' not in kwargs:
             kwargs['headers'] = {}
-        if self.token:
-            kwargs['headers']['Authorization'] = self.token
+        if self.access_token:
+            kwargs['headers']['Authorization'] = 'Bearer ' + self.access_token
 
         LOGGER.info("URL: %s and Params: %s", url, params)
         response = self.session.get(url, params=params, headers=kwargs['headers'], timeout=self.request_timeout)
