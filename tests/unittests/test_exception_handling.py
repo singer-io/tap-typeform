@@ -1,3 +1,5 @@
+import json
+import os
 import unittest
 from unittest import mock
 from parameterized import parameterized
@@ -5,6 +7,20 @@ from parameterized import parameterized
 import requests
 from tap_typeform.client import ERROR_CODE_EXCEPTION_MAPPING
 import tap_typeform.client as client_
+
+
+test_config = {
+    "client_id": "client_id",
+    "client_secret": "client_secret",
+    "access_token": "old_access_token"
+}
+test_config_path = "/tmp/test_config.json"
+
+def write_new_config_file():
+    with open(test_config_path, 'w') as config:
+        # Reset tokens while writing the test config
+        test_config["access_token"] = "old_access_token"
+        config.write(json.dumps(test_config))
 
 class Mockresponse:
     def __init__(self, resp, status_code, content=[], headers=None, raise_error=False):
@@ -86,6 +102,10 @@ class TestClientErrorHandling(unittest.TestCase):
 
     endpoint = "forms"
 
+    def tearDown(self):
+        if os.path.isfile(test_config_path):
+            os.remove(test_config_path)
+
     @parameterized.expand([
         (client_.TypeformBadRequestError, mocked_badrequest_400_error, 400),
         (client_.TypeformUnauthorizedError, mocked_unauthorized_401_error, 401),
@@ -100,16 +120,16 @@ class TestClientErrorHandling(unittest.TestCase):
         """
         Test error is raised with an expected error message.
         """
-        config = {'token': '123'}
-        client = client_.Client(config)
+        write_new_config_file()
+        client = client_.Client(test_config, test_config_path, False)
         url = client.build_url(self.endpoint)
         mock_session.side_effect=mock_response
         error_message = ERROR_CODE_EXCEPTION_MAPPING.get(err_code, {}).get("message", "")
-        
+
         expected_error_message = "HTTP-error-code: {}, Error: {}".format(err_code, error_message)
         with self.assertRaises(error) as e:
             client.request(url)
-            
+
         # Verifying the message formed for the custom exception
         self.assertEqual(str(e.exception), expected_error_message)
 
@@ -119,7 +139,8 @@ class TestClientErrorHandling(unittest.TestCase):
         """
         Test that for success response, error is not raised
         """
-        client = client_.Client({'token': '123'})
+        write_new_config_file()
+        client = client_.Client(test_config, test_config_path, False)
         mock_session.return_value=get_mock_http_response(200, '{"total_items": 10}')
         client.request("")
 
@@ -138,6 +159,10 @@ class TestClientBackoffHandling(unittest.TestCase):
 
     endpoint = "forms"
 
+    def tearDown(self):
+        if os.path.isfile(test_config_path):
+            os.remove(test_config_path)
+
     @parameterized.expand([
         (requests.exceptions.ConnectionError, requests.exceptions.ConnectionError, 5),
         (requests.exceptions.Timeout, requests.exceptions.Timeout, 5),
@@ -151,8 +176,8 @@ class TestClientBackoffHandling(unittest.TestCase):
         Test handling of backoff that function is retrying expected times
         """
         mock_session.side_effect = mock_response
-        config = {'token': '123'}
-        client = client_.Client(config)
+        write_new_config_file()
+        client = client_.Client(test_config, test_config_path, False)
         url = client.build_url(self.endpoint)
         with self.assertRaises(error):
             client.request(url)
