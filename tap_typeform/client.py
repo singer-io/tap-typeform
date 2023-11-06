@@ -162,7 +162,7 @@ class Client(object):
 
         response = self.session.post(url=self.OAUTH_URL,
                                      headers={
-                                         'Content-Type": "application/x-www-form-urlencoded'},
+                                         'Content-Type': 'application/x-www-form-urlencoded'},
                                      data={'client_id': self.client_id,
                                            'client_secret': self.client_secret,
                                            'refresh_token': self.refresh_token,
@@ -178,7 +178,7 @@ class Client(object):
 
         write_config(self.config_path,
                      {'refresh_token': self.refresh_token,
-                      'access_token': self.access_token})
+                      'token': self.access_token})
 
     def get_page_size(self, config):
         """
