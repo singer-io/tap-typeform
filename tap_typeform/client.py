@@ -141,7 +141,7 @@ class Client(object):
         else:
             self.request_timeout = REQUEST_TIMEOUT # If value is 0,"0","" or not passed then it set default to 300 seconds.
 
-    @backoff.on_exception(backoff.expo,(Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
+    @backoff.on_exception(backoff.expo,(Timeout, ConnectionError),  # Backoff for Timeout and ConnectionError.
                             max_tries=5, factor=2, jitter=None)
     @backoff.on_exception(backoff.expo, (TypeformInternalError, TypeformNotAvailableError, TypeformTooManyError, ChunkedEncodingError),
                             max_tries=3, factor=2)
@@ -160,14 +160,14 @@ class Client(object):
 
             return
 
-        response = self.session.request("POST",
-                                    url = self.OAUTH_URL,
-                                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                                    data={'client_id': self.client_id,
-                                        'client_secret': self.client_secret,
-                                        'refresh_token': self.refresh_token,
-                                        'grant_type': 'refresh_token',
-                                        'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read'})
+        response = self.session.post(url=self.OAUTH_URL,
+                                     headers={
+                                         "Content-Type": "application/x-www-form-urlencoded"},
+                                     data={'client_id': self.client_id,
+                                           'client_secret': self.client_secret,
+                                           'refresh_token': self.refresh_token,
+                                           'grant_type': 'refresh_token',
+                                           'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read'})
 
         if response.status_code != 200:
             raise_for_error(response)
@@ -177,8 +177,8 @@ class Client(object):
         self.access_token = data['access_token']
 
         write_config(self.config_path,
-                           {"refresh_token": self.refresh_token,
-                            "access_token": self.access_token})
+                     {"refresh_token": self.refresh_token,
+                      "access_token": self.access_token})
 
     def get_page_size(self, config):
         """
@@ -189,7 +189,7 @@ class Client(object):
         if page_size is None:
             return
         if ((type(page_size) == int or type(page_size) == float) and (page_size > 0)) or \
-            (type(page_size) == str and page_size.replace('.', '', 1).isdigit() and (float(page_size) > 0) ):
+                (type(page_size) == str and page_size.replace('.', '', 1).isdigit() and (float(page_size) > 0)):
             self.page_size = int(float(page_size))
             self.form_page_size = min(self.form_page_size, self.page_size)
         else:
@@ -201,10 +201,10 @@ class Client(object):
         """
         return f"{self.BASE_URL}/{endpoint}"
 
-    @backoff.on_exception(backoff.expo,(Timeout, ConnectionError), # Backoff for Timeout and ConnectionError.
-                            max_tries=5, factor=2, jitter=None)
+    @backoff.on_exception(backoff.expo, (Timeout, ConnectionError),  # Backoff for Timeout and ConnectionError.
+                          max_tries=5, factor=2, jitter=None)
     @backoff.on_exception(backoff.expo, (TypeformInternalError, TypeformNotAvailableError, TypeformTooManyError, ChunkedEncodingError),
-                            max_tries=3, factor=2)
+                          max_tries=3, factor=2)
     def request(self, url, params={}, **kwargs):
         """
         Call rest API and return the response in case of status code 200.

@@ -40,7 +40,7 @@ def main():
     config = args.config
 
     if args.dev:
-        LOGGER.warning("Executing Tap in Dev mode",)
+        LOGGER.warning("Executing Tap in Dev mode")
 
     client = Client(config, args.config_path, args.dev)
     valid_forms = validate_form_ids(client, config)
