@@ -15,7 +15,7 @@ test_config_path = "/tmp/test_config.json"
 
 def write_new_config_file(**kwargs):
     test_config = {}
-    with open(test_config_path, 'w') as config:
+    with open(test_config_path, "w") as config:
         for key, value in kwargs.items():
             test_config[key] = value
         config.write(json.dumps(test_config))

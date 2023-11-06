@@ -17,18 +17,17 @@ PAGE_SIZE_INVALID_STRING = 'abc'
 PAGE_SIZE_DEFAULT_FORMS = 200
 PAGE_SIZE_DEFAULT = 1000
 
-test_config = {
-    "client_id": "client_id",
-    "client_secret": "client_secret",
-    "access_token": "old_access_token"
-}
+
 test_config_path = "/tmp/test_config.json"
 
-def write_new_config_file():
-    with open(test_config_path, 'w') as config:
-        # Reset tokens while writing the test config
-        test_config["access_token"] = "old_access_token"
+
+def write_new_config_file(**kwargs):
+    test_config = {}
+    with open(test_config_path, "w") as config:
+        for key, value in kwargs.items():
+            test_config[key] = value
         config.write(json.dumps(test_config))
+
 
 # Mock response object
 def get_mock_http_response(*args, **kwargs):
@@ -53,9 +52,9 @@ class TestPageSizeValue(unittest.TestCase):
             - For null string, zero(string), zero(integer), takes default integer value
         """
         self.endpoint = "forms"
-        write_new_config_file()
+        test_config = {"token": "access_token", "page_size": page_size_value}
+        write_new_config_file(**test_config)
         client = client_.Client(test_config, test_config_path, False)
-        test_config["page_size"] = page_size_value
         client.get_page_size(test_config)
 
         # Verify the form_page_size is the same as the expected value
@@ -73,9 +72,9 @@ class TestPageSizeValue(unittest.TestCase):
             - For null string, zero(string), zero(integer), takes default integer value
         """
         self.endpoint = "landings"
-        write_new_config_file()
+        test_config = {"token": "access_token", "page_size": page_size_value}
+        write_new_config_file(**test_config)
         client = client_.Client(test_config, test_config_path, False)
-        test_config["page_size"] = page_size_value
         client.get_page_size(test_config)
 
         # Verify the page_size is the same as the expected value
@@ -94,12 +93,11 @@ class TestPageSizeValue(unittest.TestCase):
         """
         self.endpoint = "landings"
         print(page_size_value)
-        test_config = {'token': '123', "page_size": page_size_value}
+        test_config = {"token": "access_token", "page_size": page_size_value}
         # Verify the tap raises Exception
         with self.assertRaises(error) as e:
-            write_new_config_file()
+            write_new_config_file(**test_config)
             client = client_.Client(test_config, test_config_path, False)
-            test_config["page_size"] = page_size_value
             client.get_page_size(test_config)
         # Verify the tap raises an error with expected error message
         self.assertEqual(str(e.exception), "The entered page size is invalid, it should be a valid integer.")

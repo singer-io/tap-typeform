@@ -147,7 +147,7 @@ class Client(object):
                             max_tries=3, factor=2)
     def refresh(self):
         """
-        Checks token expiry and refreshes token if access token is expired
+        Refreshes access token and refresh token
         """
         # Existing connections won't have refresh token so use the existing access token
         if not self.refresh_token:
@@ -162,7 +162,7 @@ class Client(object):
 
         response = self.session.post(url=self.OAUTH_URL,
                                      headers={
-                                         "Content-Type": "application/x-www-form-urlencoded"},
+                                         'Content-Type": "application/x-www-form-urlencoded'},
                                      data={'client_id': self.client_id,
                                            'client_secret': self.client_secret,
                                            'refresh_token': self.refresh_token,
@@ -177,8 +177,8 @@ class Client(object):
         self.access_token = data['access_token']
 
         write_config(self.config_path,
-                     {"refresh_token": self.refresh_token,
-                      "access_token": self.access_token})
+                     {'refresh_token': self.refresh_token,
+                      'access_token': self.access_token})
 
     def get_page_size(self, config):
         """

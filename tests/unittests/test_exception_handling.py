@@ -15,7 +15,7 @@ test_config_path = "/tmp/test_config.json"
 
 def write_new_config_file(**kwargs):
     test_config = {}
-    with open(test_config_path, 'w') as config:
+    with open(test_config_path, "w") as config:
         for key, value in kwargs.items():
             test_config[key] = value
         config.write(json.dumps(test_config))
@@ -171,7 +171,7 @@ class TestClientBackoffHandling(unittest.TestCase):
         (client_.TypeformTooManyError, mocked_failed_429_request, 3),
     ])
     @mock.patch("time.sleep")
-    @mock.patch('tap_typeform.client.requests.Session.get')
+    @mock.patch("tap_typeform.client.requests.Session.get")
     def test_back_off_error_handling(self, error,mock_response, expected_call_count, mock_session_get, mock_sleep):
         """
         Test handling of backoff that function is retrying expected times
@@ -196,7 +196,7 @@ class TestClientBackoffHandling(unittest.TestCase):
         (client_.TypeformTooManyError, mocked_failed_429_request, 3),
     ])
     @mock.patch("time.sleep")
-    @mock.patch('tap_typeform.client.requests.Session.post')
+    @mock.patch("tap_typeform.client.requests.Session.post")
     def test_refresh_token_back_off_error_handling(self, error, mock_response, expected_call_count, mock_session_post, mock_sleep):
         """
         Test handling of backoff that function is retrying expected times

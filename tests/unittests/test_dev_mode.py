@@ -13,6 +13,15 @@ http_response = {"refresh_token": "new_refresh_token",
 test_config_path = "/tmp/test_config.json"
 
 
+
+def write_new_config_file(**kwargs):
+    test_config = {}
+    with open(test_config_path, "w") as config:
+        for key, value in kwargs.items():
+            test_config[key] = value
+        config.write(json.dumps(test_config))
+
+
 class Mockresponse:
     """ Mock response object class."""
 
@@ -42,14 +51,6 @@ def get_mock_http_response(status_code):
 def get_response(status_code, raise_error=True, text=""):
     """ Returns required mock response. """
     return Mockresponse(status_code, raise_error=raise_error, text=text)
-
-
-def write_new_config_file(**kwargs):
-    test_config = {}
-    with open(test_config_path, 'w') as config:
-        for key, value in kwargs.items():
-            test_config[key] = value
-        config.write(json.dumps(test_config))
 
 
 class TestDevMode(unittest.TestCase):
