@@ -47,6 +47,7 @@ class TypeformBaseTest(unittest.TestCase):
     def get_properties(self, original: bool = True):
         """Configuration properties required for the tap."""
         return_value = {
+            'client_id': os.getenv('TAP_TYPEFORM_CLIENT_ID'),
             'start_date' : '2021-05-10T00:00:00Z',
             'forms': os.getenv('TAP_TYPEFORM_FORMS'),
             'incremental_range': 'daily',
@@ -64,7 +65,19 @@ class TypeformBaseTest(unittest.TestCase):
     @staticmethod
     def get_credentials():
         """Authentication information for the test account"""
-        return {'token': os.getenv('TAP_TYPEFORM_TOKEN')}
+        return {
+            'refresh_token': os.getenv('TAP_TYPEFORM_REFRESH_TOKEN'),
+            'token': os.getenv('TAP_TYPEFORM_TOKEN'),
+            'client_secret': os.getenv('TAP_TYPEFORM_CLIENT_SECRET')}
+
+    @staticmethod
+    def preserve_refresh_token(existing_conns, payload):
+        """This method is used get the refresh token from an existing refresh token"""
+        if not existing_conns:
+            return payload
+        conn_with_creds = connections.fetch_existing_connection_with_creds(existing_conns[0]['id'])
+        payload['properties']['refresh_token'] = conn_with_creds['credentials']['refresh_token']
+        return payload
 
     def expected_metadata(self):
         """The expected streams and metadata about the streams"""
