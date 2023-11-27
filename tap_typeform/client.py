@@ -167,7 +167,7 @@ class Client(object):
                                            'client_secret': self.client_secret,
                                            'refresh_token': self.refresh_token,
                                            'grant_type': 'refresh_token',
-                                           'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read'})
+                                           'scope': 'forms:read accounts:read images:read responses:read themes:read workspaces:read offline'})
 
         if response.status_code != 200:
             raise_for_error(response)
