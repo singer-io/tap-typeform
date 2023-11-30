@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.0
+  * Enable dev-mode and token chaining [#76](https://github.com/singer-io/tap-typeform/pull/76)
+
 ## 2.2.0
   * Adds `tags` property to `submitted_landings` stream [#75](https://github.com/singer-io/tap-typeform/pull/75)
 
