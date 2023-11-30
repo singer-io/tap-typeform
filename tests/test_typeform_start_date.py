@@ -12,7 +12,7 @@ class TypeformStartDateTest(TypeformBaseTest):
     
     @staticmethod
     def name():
-        return "tap_tester_typeform_start_date_test"
+        return "tap_tester_typeform_using_shared_token_chaining"
 
     start_date_1 = ""
     start_date_2 = ""
@@ -39,7 +39,7 @@ class TypeformStartDateTest(TypeformBaseTest):
         ##########################################################################
 
         # Instantiate connection
-        conn_id_1 = connections.ensure_connection(self)
+        conn_id_1 = connections.ensure_connection(self, payload_hook=self.preserve_refresh_token)
 
         # Run check mode
         found_catalogs_1 = self.run_and_verify_check_mode(conn_id_1)
@@ -65,7 +65,7 @@ class TypeformStartDateTest(TypeformBaseTest):
         ##########################################################################
 
         # Create a new connection with the new start_date
-        conn_id_2 = connections.ensure_connection(self, original_properties=False)
+        conn_id_2 = connections.ensure_connection(self, original_properties=False, payload_hook=self.preserve_refresh_token)
 
         # Run check mode
         found_catalogs_2 = self.run_and_verify_check_mode(conn_id_2)

@@ -11,7 +11,7 @@ class DiscoveryTest(TypeformBaseTest):
 
     @staticmethod
     def name():
-        return "tap_tester_typeform_discovery_test"
+        return "tap_tester_typeform_using_shared_token_chaining"
 
     def test_run(self):
         """
@@ -32,7 +32,7 @@ class DiscoveryTest(TypeformBaseTest):
         """
         streams_to_test = self.expected_streams()
 
-        conn_id = connections.ensure_connection(self)
+        conn_id = connections.ensure_connection(self, payload_hook=self.preserve_refresh_token)
 
         # Verify that there are catalogs found
         found_catalogs = self.run_and_verify_check_mode(conn_id)

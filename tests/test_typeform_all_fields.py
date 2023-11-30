@@ -17,7 +17,7 @@ class TypeformAllFieldsTest(TypeformBaseTest):
     """Ensure running the tap with all streams and fields selected results in the replication of all fields."""
 
     def name(self):
-        return "tap_tester_typeform_all_fields_test"
+        return "tap_tester_typeform_using_shared_token_chaining"
 
     def test_run(self):
         """
@@ -29,7 +29,7 @@ class TypeformAllFieldsTest(TypeformBaseTest):
         # Streams to verify all fields tests
         streams_to_test = self.expected_streams()
 
-        conn_id = connections.ensure_connection(self)
+        conn_id = connections.ensure_connection(self, payload_hook=self.preserve_refresh_token)
 
         expected_automatic_fields = self.expected_automatic_fields()
 

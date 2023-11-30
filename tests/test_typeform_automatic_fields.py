@@ -13,7 +13,7 @@ class TypeformAutomaticFields(TypeformBaseTest):
 
     @staticmethod
     def name():
-        return "tap_tester_typeform_automatic_fields"
+        return "tap_tester_typeform_using_shared_token_chaining"
 
     def test_run(self):
         """
@@ -32,7 +32,7 @@ class TypeformAutomaticFields(TypeformBaseTest):
         expected_streams = self.expected_streams()
 
         # Instantiate connection
-        conn_id = connections.ensure_connection(self)
+        conn_id = connections.ensure_connection(self, payload_hook=self.preserve_refresh_token)
 
         # Run check mode
         found_catalogs = self.run_and_verify_check_mode(conn_id)

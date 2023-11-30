@@ -12,7 +12,7 @@ class TypeformBookmarks(TypeformBaseTest):
 
     @staticmethod
     def name():
-        return "tap_tester_typeform_bookmarks"
+        return "tap_tester_typeform_using_shared_token_chaining"
 
     @staticmethod
     def convert_state_to_utc(date_str):
@@ -39,7 +39,7 @@ class TypeformBookmarks(TypeformBaseTest):
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=3)
 
         self.start_date = self.start_date_1
-        conn_id = connections.ensure_connection(self, original_properties=False)
+        conn_id = connections.ensure_connection(self, original_properties=False, payload_hook=self.preserve_refresh_token)
 
         # Run in check mode
         found_catalogs = self.run_and_verify_check_mode(conn_id)
@@ -72,7 +72,7 @@ class TypeformBookmarks(TypeformBaseTest):
         }
         for stream, new_state in simulated_states.items():
             new_states['bookmarks'][stream] = new_state
-        conn_id_2 = connections.ensure_connection(self, original_properties=False)
+        conn_id_2 = connections.ensure_connection(self, original_properties=False, payload_hook=self.preserve_refresh_token)
         menagerie.set_state(conn_id_2, new_states)
 
         for stream in simulated_states.keys():

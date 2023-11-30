@@ -11,11 +11,12 @@ class TypeformPaginationTest(TypeformBaseTest):
     """
 
     def name(self):
-        return "tap_tester_typeform_pagination_test"
+        return "tap_tester_typeform_using_shared_token_chaining"
 
     def get_properties(self, original: bool = True):
         """Configuration properties required for the tap."""
         return_value = {
+            'client_id': os.getenv('TAP_TYPEFORM_CLIENT_ID'),
             'start_date' : '2021-05-10T00:00:00Z',
             'forms': os.getenv('TAP_TYPEFORM_FORMS'),
             'incremental_range': 'daily',
@@ -44,7 +45,7 @@ class TypeformPaginationTest(TypeformBaseTest):
     
         self.PAGE_SIZE = page_size
 
-        conn_id = connections.ensure_connection(self)
+        conn_id = connections.ensure_connection(self, payload_hook=self.preserve_refresh_token)
 
         # Verify that there are catalogs found
         found_catalogs = self.run_and_verify_check_mode(conn_id)
