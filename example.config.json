@@ -1,5 +1,8 @@
 {
   "token": "<myapitoken>",
+  "refresh_token": "<my_refresh_token>",
+  "client_id": "<my_client_id>",
+  "client_secret": "<my_client_secret>",
   "start_date": "2018-01-01T00:00:00Z",
   "forms": "ZFuC6U,bFPlvG,WFBGBZ,WF0XE6,xFWoCE,OFHRwO,QFh3FI",
   "page_size": 100,

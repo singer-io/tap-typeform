@@ -1,8 +1,21 @@
+import json
 import unittest
 from unittest import mock
 from parameterized import parameterized
 from tap_typeform.client import Client
 from tap_typeform.streams import Forms, SubmittedLandings, Questions, Answers, UnsubmittedLandings
+
+test_config = {"token": ""}
+test_config_path = "/tmp/test_config.json"
+
+
+def write_new_config_file(**kwargs):
+    test_config = {}
+    with open(test_config_path, 'w') as config:
+        for key, value in kwargs.items():
+            test_config[key] = value
+        config.write(json.dumps(test_config))
+
 
 def get_stream_catalog(stream_name, selected = False):
     """
@@ -41,13 +54,14 @@ class TestFullTableStream(unittest.TestCase):
         """
         Test `sync_obj` for full table streams.
         """
-        client = Client({"token": ""})
+        write_new_config_file(**test_config)
+        client = Client(test_config, test_config_path, False)
         test_stream = Questions()
         expected_records = [
             {"id": 1, "question_id": 1, "form_id": "form1"},
             {"id": 2, "question_id": 2, "form_id": "form1"},
         ]
-        
+
         records = [
             {"id": 1},
             {"id": 2},
@@ -72,13 +86,14 @@ class TestIncrementalStream(unittest.TestCase):
     """
     Test incremental streams methods.
     """
-    
+
     @mock.patch("tap_typeform.streams.IncrementalStream.write_records")
     def test_sync_obj(self, mock_write_records, mock_add_field, mock_request):
         """
-        Test `sync_obj` method of incremental streams. 
+        Test `sync_obj` method of incremental streams.
         """
-        client = Client({"token": ""})
+        write_new_config_file(**test_config)
+        client = Client(test_config, test_config_path, False)
         test_stream = SubmittedLandings()
 
         records = [
@@ -169,7 +184,7 @@ class TestFormsStream(unittest.TestCase):
     """
     Test `sync_obj` method for Forms stream.
     """
-    
+
     @mock.patch("tap_typeform.streams.IncrementalStream.write_records")
     def test_sync_obj(self, mock_write_records, mock_requests):
         mock_write_records.return_value = ""
@@ -179,9 +194,10 @@ class TestFormsStream(unittest.TestCase):
             {"items": [], "page_count": 3},
             {"items": [], "page_count": 3},
         ]
-        client = Client({"token": ""})
+        write_new_config_file(**test_config)
+        client = Client(test_config, test_config_path, False)
         test_stream = Forms()
-        
+
         test_stream.sync_obj(client, {}, catalogs, "", ['forms'], {'forms': 0})
 
         # Verify that write records called 3 time

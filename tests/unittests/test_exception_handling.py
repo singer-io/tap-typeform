@@ -1,3 +1,5 @@
+import json
+import os
 import unittest
 from unittest import mock
 from parameterized import parameterized
@@ -5,6 +7,18 @@ from parameterized import parameterized
 import requests
 from tap_typeform.client import ERROR_CODE_EXCEPTION_MAPPING
 import tap_typeform.client as client_
+
+
+
+test_config_path = "/tmp/test_config.json"
+
+
+def write_new_config_file(**kwargs):
+    test_config = {}
+    with open(test_config_path, "w") as config:
+        for key, value in kwargs.items():
+            test_config[key] = value
+        config.write(json.dumps(test_config))
 
 class Mockresponse:
     def __init__(self, resp, status_code, content=[], headers=None, raise_error=False):
@@ -86,6 +100,10 @@ class TestClientErrorHandling(unittest.TestCase):
 
     endpoint = "forms"
 
+    def tearDown(self):
+        if os.path.isfile(test_config_path):
+            os.remove(test_config_path)
+
     @parameterized.expand([
         (client_.TypeformBadRequestError, mocked_badrequest_400_error, 400),
         (client_.TypeformUnauthorizedError, mocked_unauthorized_401_error, 401),
@@ -100,16 +118,17 @@ class TestClientErrorHandling(unittest.TestCase):
         """
         Test error is raised with an expected error message.
         """
-        config = {'token': '123'}
-        client = client_.Client(config)
+        test_config = {"token": ""}
+        write_new_config_file(**test_config)
+        client = client_.Client(test_config, test_config_path, False)
         url = client.build_url(self.endpoint)
         mock_session.side_effect=mock_response
         error_message = ERROR_CODE_EXCEPTION_MAPPING.get(err_code, {}).get("message", "")
-        
+
         expected_error_message = "HTTP-error-code: {}, Error: {}".format(err_code, error_message)
         with self.assertRaises(error) as e:
             client.request(url)
-            
+
         # Verifying the message formed for the custom exception
         self.assertEqual(str(e.exception), expected_error_message)
 
@@ -119,7 +138,9 @@ class TestClientErrorHandling(unittest.TestCase):
         """
         Test that for success response, error is not raised
         """
-        client = client_.Client({'token': '123'})
+        test_config = {"token": ""}
+        write_new_config_file(**test_config)
+        client = client_.Client(test_config, test_config_path, False)
         mock_session.return_value=get_mock_http_response(200, '{"total_items": 10}')
         client.request("")
 
@@ -129,14 +150,17 @@ class TestClientErrorHandling(unittest.TestCase):
         # Verify `raw data item` logger is called
         mock_logger.assert_called_with("raw data items= 10")
 
-@mock.patch("time.sleep")
-@mock.patch('tap_typeform.client.requests.Session.get')
+
 class TestClientBackoffHandling(unittest.TestCase):
     """
     Test handling of backoff for Timeout, ConnectionError, ChunkEncoding, 5xx, 429 errors.
     """
 
     endpoint = "forms"
+
+    def tearDown(self):
+        if os.path.isfile(test_config_path):
+            os.remove(test_config_path)
 
     @parameterized.expand([
         (requests.exceptions.ConnectionError, requests.exceptions.ConnectionError, 5),
@@ -146,16 +170,42 @@ class TestClientBackoffHandling(unittest.TestCase):
         (client_.TypeformNotAvailableError, mocked_not_available_503_error, 3),
         (client_.TypeformTooManyError, mocked_failed_429_request, 3),
     ])
-    def test_back_off_error_handling(self, mock_session, mock_sleep, error,mock_response, expected_call_count):
+    @mock.patch("time.sleep")
+    @mock.patch("tap_typeform.client.requests.Session.get")
+    def test_back_off_error_handling(self, error,mock_response, expected_call_count, mock_session_get, mock_sleep):
         """
         Test handling of backoff that function is retrying expected times
         """
-        mock_session.side_effect = mock_response
-        config = {'token': '123'}
-        client = client_.Client(config)
+        mock_session_get.side_effect = mock_response
+        test_config = {"token": ""}
+        write_new_config_file(**test_config)
+        client = client_.Client(test_config, test_config_path, False)
         url = client.build_url(self.endpoint)
         with self.assertRaises(error):
             client.request(url)
 
         # Verify `client.requests` backoff expected times
-        self.assertEqual(mock_session.call_count, expected_call_count)
+        self.assertEqual(mock_session_get.call_count, expected_call_count)
+
+    @parameterized.expand([
+        (requests.exceptions.ConnectionError, requests.exceptions.ConnectionError, 5),
+        (requests.exceptions.Timeout, requests.exceptions.Timeout, 5),
+        (requests.exceptions.ChunkedEncodingError, requests.exceptions.ChunkedEncodingError, 3),
+        (client_.TypeformInternalError, mocked_internalservererror_500_error, 3),
+        (client_.TypeformNotAvailableError, mocked_not_available_503_error, 3),
+        (client_.TypeformTooManyError, mocked_failed_429_request, 3),
+    ])
+    @mock.patch("time.sleep")
+    @mock.patch("tap_typeform.client.requests.Session.post")
+    def test_refresh_token_back_off_error_handling(self, error, mock_response, expected_call_count, mock_session_post, mock_sleep):
+        """
+        Test handling of backoff that function is retrying expected times
+        """
+        mock_session_post.side_effect = mock_response
+        test_config = {"token": "access_token", "refresh_token": "refresh_token"}
+        write_new_config_file(**test_config)
+        with self.assertRaises(error):
+            client_.Client(test_config, test_config_path, False)
+
+        # Verify `client.requests` backoff expected times
+        self.assertEqual(mock_session_post.call_count, expected_call_count)

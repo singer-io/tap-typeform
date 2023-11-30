@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import patch
 from parameterized import parameterized
@@ -8,6 +9,17 @@ import tap_typeform.client as client_
 REQUEST_TIMEOUT_INT = 300
 REQUEST_TIMEOUT_STR = "300"
 REQUEST_TIMEOUT_FLOAT = 300.0
+
+
+test_config_path = "/tmp/test_config.json"
+
+def write_new_config_file(**kwargs):
+    test_config = {}
+    with open(test_config_path, "w") as config:
+        for key, value in kwargs.items():
+            test_config[key] = value
+        config.write(json.dumps(test_config))
+
 
 # Mock response object
 def get_mock_http_response(*args, **kwargs):
@@ -23,7 +35,7 @@ def get_mock_http_response(*args, **kwargs):
 class TestRequestTimeoutsValue(unittest.TestCase):
 
     endpoint = "forms"
-    
+
     @parameterized.expand([
         (REQUEST_TIMEOUT_STR, REQUEST_TIMEOUT_FLOAT),
         (REQUEST_TIMEOUT_INT, REQUEST_TIMEOUT_FLOAT),
@@ -38,10 +50,12 @@ class TestRequestTimeoutsValue(unittest.TestCase):
             - For string, integer, float type of values, converts to float
             - For null string, zero(string), zero(integer), takes default integer value
         """
-        config = {'token': '123', "request_timeout": time_out_value}
-        client = client_.Client(config)
+        test_config = {"token": "old_access_token",
+                       "request_timeout": time_out_value}
+        write_new_config_file(**test_config)
+        client = client_.Client(test_config, test_config_path, False)
         url = client.build_url(self.endpoint)
-        
+
         # Call request method which calls `requests.Session.get` with timeout
         client.request(url)
 
@@ -52,9 +66,10 @@ class TestRequestTimeoutsValue(unittest.TestCase):
     def test_no_request_timeout_value_in_config(self, mocked_request, mock_send, mock_sleep):
         """
         Verify that if request_timeout is not provided in the config then the default value is used
-        """       
-        config = {'token': '123'}
-        client = client_.Client(config)
+        """
+        test_config = {"token": "old_access_token"}
+        write_new_config_file(**test_config)
+        client = client_.Client(test_config, test_config_path, False)
         url = client.build_url(self.endpoint)
         # Call request method which calls `requests.Session.get` with timeout
         client.request(url)

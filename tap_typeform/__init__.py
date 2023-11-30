@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import singer
-from singer import utils
+from singer import utils as _utils
 from tap_typeform.discover import discover as _discover
 from tap_typeform.sync import sync as _sync
 from tap_typeform.client import Client
@@ -34,11 +34,15 @@ def validate_form_ids(client, config):
     return config_forms
 
 
-@utils.handle_top_exception(LOGGER)
+@_utils.handle_top_exception(LOGGER)
 def main():
-    args = utils.parse_args(REQUIRED_CONFIG_KEYS)
+    args = _utils.parse_args(REQUIRED_CONFIG_KEYS)
     config = args.config
-    client = Client(config)
+
+    if args.dev:
+        LOGGER.warning("Executing Tap in Dev mode")
+
+    client = Client(config, args.config_path, args.dev)
     valid_forms = validate_form_ids(client, config)
     if args.discover:
         catalog = _discover()

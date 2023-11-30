@@ -8,11 +8,13 @@ from singer.catalog import Catalog
 class MockArgs:
     """Mock args object class"""
 
-    def __init__(self, config=None, catalog=None, state={}, discover=False) -> None:
+    def __init__(self, config=None, catalog=None, state={}, discover=False, dev=False) -> None:
         self.config = config
         self.catalog = catalog
         self.state = state
         self.discover = discover
+        self.dev = dev
+        self.config_path = ""
 
 
 @mock.patch("tap_typeform.validate_form_ids")
@@ -81,6 +83,30 @@ class TestMainWorkflow(unittest.TestCase):
 
         # Verify `_sync` is called with expected arguments
         mock_sync.assert_called_with(mock.ANY, self.mock_config, mock_state, self.mock_catalog, mock_validate.return_value)
+
+    def test_discover_with_dev_mode_enabled(self, mock_sync, mock_discover, mock_args, mock_validate):
+        """
+        Test `_discover` function is called for discover mode.
+        """
+        mock_discover.dump.return_value = dict()
+        mock_args.return_value = MockArgs(discover=True, config=self.mock_config, dev=True)
+        main()
+
+        self.assertTrue(mock_discover.called)
+        self.assertFalse(mock_sync.called)
+
+    def test_sync_with_dev_mode_enabled(self, mock_sync, mock_discover, mock_args, mock_validate):
+        """
+        Test `_discover` function is called for discover mode.
+        """
+        mock_discover.dump.return_value = dict()
+        mock_args.return_value = MockArgs(config=self.mock_config,
+                                          catalog=Catalog.from_dict(self.mock_catalog),
+                                          dev=True)
+        main()
+
+        self.assertFalse(mock_discover.called)
+        self.assertTrue(mock_sync.called)
 
 
 @mock.patch("tap_typeform.Forms")
