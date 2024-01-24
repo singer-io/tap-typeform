@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.0
+  * Updates for python 3.11 [#79](https://github.com/singer-io/tap-typeform/pull/79)
+
 ## 2.3.0
   * Enable dev-mode and token chaining [#76](https://github.com/singer-io/tap-typeform/pull/76)
 

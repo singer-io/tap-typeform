@@ -11,16 +11,16 @@ jobs:
           command: |
             python3 -mvenv /usr/local/share/virtualenvs/tap-typeform
             source /usr/local/share/virtualenvs/tap-typeform/bin/activate
-            pip install -U 'pip<19.2' 'setuptools<51.0.0'
+            pip install -U pip 'setuptools<51.0.0'
             pip install .[dev]
       - run:
           when: always
           name: 'Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            pip install nose coverage parameterized
-            nosetests --with-coverage --cover-erase --cover-package=tap_typeform --cover-html-dir=htmlcov tests/unittests
-            coverage html
+            source /usr/local/share/virtualenvs/tap-typeform/bin/activate
+            pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5
+            nose2 --with-coverage -v -s tests/unittests
       - store_test_results:
           path: test_output/report.xml
       - store_artifacts:
