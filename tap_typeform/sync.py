@@ -1,5 +1,5 @@
 import singer
-from tap_typeform.streams import STREAMS
+from streams import STREAMS
 
 LOGGER = singer.get_logger()
 

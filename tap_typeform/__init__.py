@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import singer
 from singer import utils as _utils
-from tap_typeform.discover import discover as _discover
-from tap_typeform.sync import sync as _sync
-from tap_typeform.client import Client
-from tap_typeform.streams import Forms
+from discover import discover as _discover
+from sync import sync as _sync
+from client import Client
+from streams import Forms
 
 REQUIRED_CONFIG_KEYS = ["start_date", "token"]
 

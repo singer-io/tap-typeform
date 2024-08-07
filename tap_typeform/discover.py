@@ -1,6 +1,6 @@
 import singer
 from singer.catalog import Catalog, CatalogEntry, Schema
-from tap_typeform.schema import get_schemas
+from schema import get_schemas
 
 LOGGER = singer.get_logger()
 

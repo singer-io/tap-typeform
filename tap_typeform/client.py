@@ -5,7 +5,7 @@ import singer
 from datetime import timedelta
 from singer.utils import now
 from requests.exceptions import ChunkedEncodingError, Timeout, ConnectionError
-from tap_typeform.utils import write_config
+from utils import write_config
 
 
 LOGGER = singer.get_logger()
@@ -117,6 +117,7 @@ class Client(object):
     The client class is used for making REST calls to the Github API.
     """
     BASE_URL = 'https://api.typeform.com'
+    EU_BASE_URL = 'https://api.eu.typeform.com'
     OAUTH_URL = 'https://api.typeform.com/oauth/token'
 
     def __init__(self, config, config_path, dev_mode):
@@ -125,6 +126,7 @@ class Client(object):
         self.page_size = MAX_RESPONSES_PAGE_SIZE
         self.form_page_size = FORMS_PAGE_SIZE
         self.config_path = config_path
+        self.typeform_url = self.EU_BASE_URL #if config.get('typeform_environment') == 'eu' else self.BASE_URL
         self.get_page_size(config)
 
         self.client_id = config.get('client_id')
@@ -199,7 +201,7 @@ class Client(object):
         """
         Returns full URL for a given endpoint.
         """
-        return f"{self.BASE_URL}/{endpoint}"
+        return f"{self.typeform_url}/{endpoint}"
 
     @backoff.on_exception(backoff.expo, (Timeout, ConnectionError),  # Backoff for Timeout and ConnectionError.
                           max_tries=5, factor=2, jitter=None)

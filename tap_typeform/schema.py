@@ -2,7 +2,7 @@ import os
 import json
 from singer import metadata
 import singer
-from tap_typeform.streams import STREAMS
+from streams import STREAMS
 
 def get_abs_path(path):
     """
