@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.1
+  * Pin dependencies [#82](https://github.com/singer-io/tap-typeform/pull/82)
+
 ## 2.4.0
   * Updates for python 3.11 [#79](https://github.com/singer-io/tap-typeform/pull/79)
 
