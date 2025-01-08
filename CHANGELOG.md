@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.2
+  * Remove ratelimit dependency [#83](https://github.com/singer-io/tap-typeform/pull/83)
+
 ## 2.4.1
   * Pin dependencies [#82](https://github.com/singer-io/tap-typeform/pull/82)
 
