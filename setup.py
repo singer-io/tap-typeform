@@ -13,7 +13,7 @@ setup(
         "singer-python==6.0.0",
         "pendulum==3.0.0",
         "backoff==2.2.1",
-        "requests==2.32.3",
+        "requests==2.32.4",
     ],
     extras_require={
         'dev': [
