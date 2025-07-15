@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.3
+  * Bump dependency versions for twistlock compliance [#85](https://github.com/singer-io/tap-typeform/pull/85)
+
 ## 2.4.2
   * Remove ratelimit dependency [#83](https://github.com/singer-io/tap-typeform/pull/83)
 
