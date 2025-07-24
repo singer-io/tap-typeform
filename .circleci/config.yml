@@ -17,9 +17,8 @@ jobs:
           when: always
           name: 'Unit Tests'
           command: |
-            source /usr/local/share/virtualenvs/tap-tester/bin/activate
             source /usr/local/share/virtualenvs/tap-typeform/bin/activate
-            pip install pytest coverage parameterized
+            uv pip install pytest coverage parameterized
             coverage run -m pytest tests/unittests
             coverage html
       - store_test_results:
