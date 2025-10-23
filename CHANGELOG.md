@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.0
+  * Adds parent-tap-stream-id field to catalog for child streams [#88](https://github.com/singer-io/tap-typeform/pull/88)
+
 ## 2.4.3
   * Bump dependency versions for twistlock compliance [#85](https://github.com/singer-io/tap-typeform/pull/85)
 
