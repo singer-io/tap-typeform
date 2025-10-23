@@ -56,6 +56,8 @@ class DiscoveryTest(TypeformBaseTest):
                 expected_replication_keys = self.expected_replication_keys()[stream]
                 expected_automatic_fields = expected_primary_keys | expected_replication_keys
                 expected_replication_method = self.expected_replication_method()[stream]
+                expected_parent_stream = self.expected_metadata().get(
+                    stream, {}).get(self.EXPECTED_PARENT_STREAM)
 
                 # collecting actual values...
                 schema_and_metadata = menagerie.get_annotated_schema(conn_id, catalog['stream_id'])
@@ -77,6 +79,9 @@ class DiscoveryTest(TypeformBaseTest):
                     item.get("breadcrumb", ["properties", None])[1] for item in metadata
                     if item.get("metadata").get("inclusion") == "automatic"
                 )
+                # Get parent-tap-stream-id if present
+                actual_parent_stream_id = stream_properties[0].get(
+                    "metadata", {}).get(self.PARENT_TAP_STREAM_ID)
 
                 actual_fields = []
                 for md_entry in metadata:
@@ -109,6 +114,17 @@ class DiscoveryTest(TypeformBaseTest):
                 self.assertEqual(expected_replication_method, actual_replication_method,
                                     msg="The actual replication method {} doesn't match the expected {}".format(
                                         actual_replication_method, expected_replication_method))
+                # Verify parent-tap-stream-id for child streams
+                if expected_parent_stream:
+                    self.assertEqual(
+                        actual_parent_stream_id, expected_parent_stream,
+                        msg=f"Parent stream mismatch for {stream}"
+                    )
+                else:
+                    self.assertIsNone(
+                        actual_parent_stream_id,
+                        msg=f"Expected no parent stream for {stream}, but found {actual_parent_stream_id}"
+                    )
 
                 # Verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
                 if expected_replication_keys:
