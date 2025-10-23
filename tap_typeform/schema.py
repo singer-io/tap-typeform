@@ -43,6 +43,11 @@ def get_schemas():
             if replication_keys and field_name in replication_keys:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
 
+        # Check if the stream has any parent attribute
+        parent_attribute = getattr(stream_metadata, "parent", None)
+        if parent_attribute:
+            mdata = metadata.write(mdata, (), "parent-tap-stream-id", parent_attribute)
+        
         mdata = metadata.to_list(mdata)
         field_metadata[stream_name] = mdata
 
