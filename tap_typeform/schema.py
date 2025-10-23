@@ -47,7 +47,6 @@ def get_schemas():
         parent_attribute = getattr(stream_metadata, "parent", None)
         if parent_attribute:
             mdata = metadata.write(mdata, (), "parent-tap-stream-id", parent_attribute)
-        
         mdata = metadata.to_list(mdata)
         field_metadata[stream_name] = mdata
 
