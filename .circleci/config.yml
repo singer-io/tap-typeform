@@ -9,9 +9,9 @@ jobs:
       - run:
           name: 'Setup virtual env'
           command: |
-            uv venv --python 3.11 /usr/local/share/virtualenvs/tap-typeform
+            uv venv --python 3.12 /usr/local/share/virtualenvs/tap-typeform
             source /usr/local/share/virtualenvs/tap-typeform/bin/activate
-            uv pip install -U pip 'setuptools<51.0.0'
+            uv pip install -U pip 'setuptools==65.3.0'
             uv pip install .[dev]
       - run:
           when: always
@@ -32,6 +32,8 @@ jobs:
             uv pip install --upgrade awscli
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             source dev_env.sh
+            unset USE_STITCH_BACKEND
+            uv pip install -e .
             run-test --tap=tap-typeform tests
 workflows:
   version: 2
