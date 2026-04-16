@@ -1,4 +1,5 @@
 version: 2
+
 jobs:
   build:
     docker:
@@ -9,9 +10,9 @@ jobs:
       - run:
           name: 'Setup virtual env'
           command: |
-            uv venv --python 3.11 /usr/local/share/virtualenvs/tap-typeform
+            uv venv --python 3.12 /usr/local/share/virtualenvs/tap-typeform
             source /usr/local/share/virtualenvs/tap-typeform/bin/activate
-            uv pip install -U pip 'setuptools<51.0.0'
+            uv pip install -U setuptools
             uv pip install .[dev]
       - run:
           when: always
