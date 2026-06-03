@@ -1,5 +1,9 @@
 # Changelog
 
+# 2.4.4
+  * Bump requests to 2.33.0 for security updates [#93](https://github.com/singer-io/tap-typeform/pull/93)
+
+
 ## 2.4.3
   * Bump dependency versions for twistlock compliance [#85](https://github.com/singer-io/tap-typeform/pull/85)
 
