@@ -4,6 +4,9 @@
   * Adds parent-tap-stream-id field to catalog for child streams [#88](https://github.com/singer-io/tap-typeform/pull/88)
   * Bump dependency versions: `singer-python` to 6.8.0 [#89](https://github.com/singer-io/tap-typeform/pull/89)
 
+# 2.4.4
+  * Bump requests to 2.33.0 for security updates [#93](https://github.com/singer-io/tap-typeform/pull/93)
+
 ## 2.4.3
   * Bump dependency versions for twistlock compliance [#85](https://github.com/singer-io/tap-typeform/pull/85)
 
