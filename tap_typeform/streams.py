@@ -3,6 +3,7 @@ import pendulum
 from datetime import datetime
 import singer
 from singer import bookmarks
+from tap_typeform.client import TypeformForbiddenError
 
 
 LOGGER = singer.get_logger()
@@ -80,8 +81,48 @@ class Stream:
     child_data_key = None
     records_count = {}
 
+    def __init__(self, client=None):
+        self.client = client
+
+    def check_access(self, form_id=None) -> bool:
+        """
+        Verify that the API credentials have read access to this stream.
+        Returns True if accessible, False if a 403 Forbidden error is raised.
+        Child streams always return True (access is governed by the parent check).
+        If form_id is provided and the endpoint requires one, the actual stream
+        endpoint is probed; otherwise falls back to the base path before the
+        placeholder (e.g. 'forms/{}/responses' → 'forms').
+        """
+        if self.parent:
+            return True
+
+        if not self.endpoint:
+            return True
+
+        if form_id and '{}' in self.endpoint:
+            endpoint = self.endpoint.format(form_id)
+        else:
+            # No form_id available; derive the base path by stripping the placeholder
+            # e.g. 'forms/{}/responses' → 'forms', 'forms/{}' → 'forms'
+            endpoint = self.endpoint.split('{}')[0].rstrip('/')
+
+        try:
+            url = self.client.build_url(endpoint)
+            self.client.request(url, params={'page_size': 1})
+            return True
+        except TypeformForbiddenError as exc:
+            LOGGER.warning(
+                "Permission Error: Stream '%s' %s. Excluding from catalog.",
+                self.tap_stream_id,
+                exc,
+            )
+            return False
+
     def add_fields_at_1st_level(self, record, additional_data={}):
-        pass
+        """
+        Add additional data and nested fields to top level.
+        Subclasses override this to apply stream-specific transformations.
+        """
 
     def sync_child_stream(self, record, catalogs, state, selected_stream_ids, form_id, start_date, max_bookmark):
 
@@ -107,7 +148,7 @@ class IncrementalStream(Stream):
         stream_catalog = get_schema(catalogs, self.tap_stream_id)
         bookmark = get_bookmark(state, self.tap_stream_id, form_id, self.replication_keys[0], start_date)
 
-        with singer.metrics.record_counter(self.tap_stream_id) as counter: 
+        with singer.metrics.record_counter(self.tap_stream_id) as counter:
             with singer.Transformer() as transformer:
                 extraction_time = singer.utils.now()
                 stream_metadata = singer.metadata.to_map(stream_catalog['metadata'])
@@ -214,7 +255,6 @@ class Forms(IncrementalStream):
         max_bookmark = bookmark
 
         for records in self.get_forms(client):
-            
             max_bookmark = self.write_records(records, catalogs, selected_stream_ids,
                         None, max_bookmark, state, start_date)
             write_bookmarks(self.tap_stream_id, selected_stream_ids, None, max_bookmark, state)
