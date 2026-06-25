@@ -22,6 +22,8 @@ class TypeformBaseTest(unittest.TestCase):
     PRIMARY_KEYS = "table-key-properties"
     FOREIGN_KEYS = "table-foreign-key-properties"
     REPLICATION_METHOD = "forced-replication-method"
+    PARENT_TAP_STREAM_ID = "parent-tap-stream-id"
+    EXPECTED_PARENT_STREAM = "expected-parent-stream"
     API_LIMIT = "max-row-limit"
     INCREMENTAL = "INCREMENTAL"
     FULL_TABLE = "FULL_TABLE"
@@ -86,7 +88,8 @@ class TypeformBaseTest(unittest.TestCase):
                 self.PRIMARY_KEYS: {"landing_id", "question_id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"submitted_at"},
-                self.OBEYS_START_DATE: True
+                self.OBEYS_START_DATE: True,
+                self.EXPECTED_PARENT_STREAM: "submitted_landings"
             },
             "submitted_landings": {
                 self.PRIMARY_KEYS: {"landing_id"},
