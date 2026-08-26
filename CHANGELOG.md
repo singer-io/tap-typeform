@@ -1,12 +1,14 @@
 # Changelog
 
-## 2.5.0
-  * Adds parent-tap-stream-id field to catalog for child streams [#88](https://github.com/singer-io/tap-typeform/pull/88)
-  * Bump dependency versions: `singer-python` to 6.8.0 [#89](https://github.com/singer-io/tap-typeform/pull/89)
+## 2.6.0
   * Exclude 403-inaccessible streams from catalog during discovery [#94](https://github.com/singer-io/tap-typeform/pull/94)
   * Added unit tests for access check, discovery, and catalog exclusion logic
 
-# 2.4.4
+## 2.5.0
+  * Adds parent-tap-stream-id field to catalog for child streams [#88](https://github.com/singer-io/tap-typeform/pull/88)
+  * Bump dependency versions: `singer-python` to 6.8.0 [#89](https://github.com/singer-io/tap-typeform/pull/89)
+  
+## 2.4.4
   * Bump requests to 2.33.0 for security updates [#93](https://github.com/singer-io/tap-typeform/pull/93)
 
 ## 2.4.3
