@@ -69,9 +69,9 @@ class Stream:
     """
     tap_stream_id = None
     replication_method = None
-    replication_keys = None
+    replication_keys = []
     key_properties = []
-    endpoint = None
+    endpoint = ''
     filter_param = False
     children = []
     headers = {}
