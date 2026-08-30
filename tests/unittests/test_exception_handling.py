@@ -131,6 +131,8 @@ class TestClientErrorHandling(unittest.TestCase):
 
         # Verifying the message formed for the custom exception
         self.assertEqual(str(e.exception), expected_error_message)
+        if err_code == 401:
+            mock_session.assert_called_once()
 
     @mock.patch("tap_typeform.client.raise_for_error")
     @mock.patch("tap_typeform.client.LOGGER.info")

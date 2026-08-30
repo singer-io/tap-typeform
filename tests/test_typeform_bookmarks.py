@@ -166,8 +166,9 @@ class TypeformBookmarks(TypeformBaseTest):
                                             msg="First sync bookmark was set incorrectly, a record with a greater replication-key value was synced."
                                         )
 
-                            # Verify the number of records in the 2nd sync is less than the first
-                            self.assertLess(second_sync_count, first_sync_count)
+                            # Equal counts are valid when all records are newer than
+                            # the simulated bookmark.
+                            self.assertLessEqual(second_sync_count, first_sync_count)
 
                     else:
                         # collect information specific to incremental streams from syncs 1 & 2
@@ -209,8 +210,9 @@ class TypeformBookmarks(TypeformBaseTest):
                     # Verify the second sync bookmark is Greater or Equal to the first sync bookmark
                     self.assertGreaterEqual(second_bookmark_value, first_bookmark_value) # new responses could be picked up for the form in the second sync
 
-                    # Verify the number of records in the 2nd sync is less then the first
-                    self.assertLess(second_sync_count, first_sync_count)
+                    # Equal counts are valid when all records are newer than
+                    # the simulated bookmark.
+                    self.assertLessEqual(second_sync_count, first_sync_count)
 
                 elif expected_replication_method == self.FULL_TABLE:
 

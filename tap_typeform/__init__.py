@@ -44,12 +44,14 @@ def main():
 
     client = Client(config, args.config_path, args.dev)
     valid_forms = validate_form_ids(client, config)
+    # valid_forms is a set (no indexing); pick any one form ID to probe stream access during discovery
+    first_form_id = next(iter(valid_forms), None)
     if args.discover:
-        catalog = _discover()
+        catalog = _discover(client, form_id=first_form_id)
         catalog.dump()
     else:
         catalog = args.catalog \
-            if args.catalog else _discover()
+            if args.catalog else _discover(client, form_id=first_form_id)
         _sync(client, config, args.state, catalog.to_dict(), valid_forms)
 
 if __name__ == "__main__":
