@@ -50,9 +50,18 @@ class TestCheckAccessBaseStream(unittest.TestCase):
     def test_check_access_forms_returns_false_on_403(self):
         """Forms.check_access() returns False when API raises TypeformForbiddenError."""
         client = self._make_client()
-        client.request.side_effect = TypeformForbiddenError("HTTP-error-code: 403, Error: Forbidden")
+        exception = TypeformForbiddenError("HTTP-error-code: 403, Error: Forbidden")
+        client.request.side_effect = exception
         stream = Forms(client=client)
-        result = stream.check_access()
+
+        with patch("tap_typeform.streams.LOGGER.warning") as mock_warn:
+            result = stream.check_access()
+
+        mock_warn.assert_called_once_with(
+            "Unauthorized Stream: %s, excluding from catalog. HTTP-Error-Message:'%s'",
+            "forms",
+            exception,
+        )
         self.assertFalse(result)
 
     def test_check_access_questions_returns_true_on_success(self):
@@ -195,7 +204,11 @@ class TestApplyAccessChecks(unittest.TestCase):
             with self.assertRaises(TypeformForbiddenError) as ctx:
                 _apply_access_checks(client, schemas, field_metadata)
 
-        self.assertIn("403", str(ctx.exception))
+        self.assertEqual(
+            str(ctx.exception),
+            "HTTP-error-code: 403, Error: The credentials do not have "
+            "'read' access to any supported streams.",
+        )
 
     def test_partial_inaccessible_does_not_raise(self):
         """No exception raised when at least one parent stream is accessible."""
@@ -225,9 +238,9 @@ class TestApplyAccessChecks(unittest.TestCase):
              patch("tap_typeform.discover.LOGGER.warning") as mock_warn:
             _apply_access_checks(client, schemas, field_metadata)
 
-        # At least one warning call about excluded stream
-        warning_messages = [str(call) for call in mock_warn.call_args_list]
-        self.assertTrue(any("forms" in msg for msg in warning_messages))
+        mock_warn.assert_called_once_with(
+            "Unauthorized streams excluded from catalog: %s", "forms"
+        )
 
 
 class TestDiscoverWithAccessChecks(unittest.TestCase):

@@ -3,7 +3,7 @@ import pendulum
 from datetime import datetime
 import singer
 from singer import bookmarks
-from tap_typeform.client import TypeformForbiddenError
+from tap_typeform.client import TypeformForbiddenError, TypeformUnauthorizedError
 
 
 LOGGER = singer.get_logger()
@@ -110,9 +110,9 @@ class Stream:
             url = self.client.build_url(endpoint)
             self.client.request(url, params={'page_size': 1})
             return True
-        except TypeformForbiddenError as exc:
+        except (TypeformForbiddenError, TypeformUnauthorizedError) as exc:
             LOGGER.warning(
-                "Permission Error: Stream '%s' %s. Excluding from catalog.",
+                "Unauthorized Stream: %s, excluding from catalog. HTTP-Error-Message:'%s'",
                 self.tap_stream_id,
                 exc,
             )

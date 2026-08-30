@@ -12,6 +12,7 @@ def _prune_inaccessible_children(schemas: dict, field_metadata: dict) -> None:
     Remove child streams from the catalog whose parent stream was excluded.
     Mutates schemas and field_metadata in place.
     """
+    to_exclude = []
     for name, stream_cls in list(STREAMS.items()):
         if name in schemas and stream_cls.parent and stream_cls.parent not in schemas:
             LOGGER.warning(
@@ -20,6 +21,8 @@ def _prune_inaccessible_children(schemas: dict, field_metadata: dict) -> None:
             )
             schemas.pop(name, None)
             field_metadata.pop(name, None)
+            to_exclude.append(name)
+    return to_exclude
 
 
 def _apply_access_checks(client, schemas: dict, field_metadata: dict, form_id=None) -> None:
@@ -44,7 +47,7 @@ def _apply_access_checks(client, schemas: dict, field_metadata: dict, form_id=No
         schemas.pop(stream_name, None)
         field_metadata.pop(stream_name, None)
 
-    _prune_inaccessible_children(schemas, field_metadata)
+    inaccessible_streams.extend(_prune_inaccessible_children(schemas, field_metadata))
 
     if not schemas:
         raise TypeformForbiddenError(
@@ -53,8 +56,8 @@ def _apply_access_checks(client, schemas: dict, field_metadata: dict, form_id=No
         )
     elif inaccessible_streams:
         LOGGER.warning(
-            "No 'read' access to stream(s): %s. Excluded from catalog.",
-            ", ".join(inaccessible_streams),
+            "Unauthorized streams excluded from catalog: %s",
+            ", ".join(set(inaccessible_streams)),
         )
 
 
