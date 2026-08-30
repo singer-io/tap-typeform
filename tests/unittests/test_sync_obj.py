@@ -185,6 +185,13 @@ class TestFormsStream(unittest.TestCase):
     Test `sync_obj` method for Forms stream.
     """
 
+    def test_add_fields_normalizes_last_updated_at_precision(self, mock_requests):
+        record = {"last_updated_at": "2026-06-25T10:49:22.52474Z"}
+
+        Forms().add_fields_at_1st_level(record)
+
+        self.assertEqual(record["last_updated_at"], "2026-06-25T10:49:22.524740Z")
+
     @mock.patch("tap_typeform.streams.IncrementalStream.write_records")
     def test_sync_obj(self, mock_write_records, mock_requests):
         mock_write_records.return_value = ""

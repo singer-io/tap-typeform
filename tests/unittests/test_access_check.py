@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from tap_typeform.client import TypeformForbiddenError
+from tap_typeform.client import TypeformForbiddenError, TypeformUnauthorizedError
 from tap_typeform.discover import (
     _apply_access_checks,
     _prune_inaccessible_children,
@@ -63,6 +63,25 @@ class TestCheckAccessBaseStream(unittest.TestCase):
             exception,
         )
         self.assertFalse(result)
+
+    def test_check_access_forms_returns_false_on_401(self):
+        """Forms.check_access() excludes invalid credentials without retrying."""
+        client = self._make_client()
+        exception = TypeformUnauthorizedError(
+            "HTTP-error-code: 401, Error: Invalid authorization credentials."
+        )
+        client.request.side_effect = exception
+
+        with patch("tap_typeform.streams.LOGGER.warning") as mock_warn:
+            result = Forms(client=client).check_access()
+
+        self.assertFalse(result)
+        client.request.assert_called_once()
+        mock_warn.assert_called_once_with(
+            "Unauthorized Stream: %s, excluding from catalog. HTTP-Error-Message:'%s'",
+            "forms",
+            exception,
+        )
 
     def test_check_access_questions_returns_true_on_success(self):
         """Questions.check_access() returns True when forms endpoint succeeds."""
@@ -175,19 +194,24 @@ class TestApplyAccessChecks(unittest.TestCase):
         self.assertNotIn("forms", field_metadata)
 
     def test_answers_removed_when_submitted_landings_inaccessible(self):
-        """answers child stream is removed when submitted_landings is inaccessible."""
+        """A removed parent also appears with its child in the aggregate warning."""
         client = self._make_client()
         schemas, field_metadata = self._make_full_catalog()
 
         def fake_check_access(self, form_id=None):
             return self.tap_stream_id != "submitted_landings"
 
-        with patch("tap_typeform.streams.Stream.check_access", fake_check_access):
+        with patch("tap_typeform.streams.Stream.check_access", fake_check_access), \
+             patch("tap_typeform.discover.LOGGER.warning") as mock_warn:
             _apply_access_checks(client, schemas, field_metadata)
 
         self.assertNotIn("submitted_landings", schemas)
         self.assertNotIn("answers", schemas)
         self.assertNotIn("answers", field_metadata)
+        mock_warn.assert_any_call(
+            "Unauthorized streams excluded from catalog: %s",
+            "answers, submitted_landings",
+        )
 
     def test_all_parent_streams_inaccessible_raises_forbidden_error(self):
         """TypeformForbiddenError is raised when every parent stream is inaccessible."""
@@ -277,6 +301,10 @@ class TestDiscoverWithAccessChecks(unittest.TestCase):
         result = discover(client)
         catalog_stream_ids = {entry.tap_stream_id for entry in result.streams}
         self.assertEqual(catalog_stream_ids, set(STREAMS.keys()))
+
+        for entry in result.streams:
+            self.assertEqual(entry.key_properties, STREAMS[entry.tap_stream_id].key_properties)
+            self.assertTrue(entry.metadata)
 
     def test_discover_excludes_inaccessible_stream(self):
         """discover() excludes a stream that returns 403 during access check."""
