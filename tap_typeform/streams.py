@@ -235,6 +235,11 @@ class Forms(IncrementalStream):
         'order_by': 'asc'
     }
 
+    def add_fields_at_1st_level(self, record, additional_data={}):
+        record['last_updated_at'] = pendulum.parse(
+            record['last_updated_at']
+        ).in_timezone('UTC').strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
     def get_forms(self, client):
         full_url = client.build_url(self.endpoint)
         page = 1
